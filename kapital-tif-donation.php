@@ -82,3 +82,41 @@ function tif_donation_settings_link($links) {
     return $links;
 }
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'tif_donation_settings_link');
+
+// kapital-tif-donation.php əlavəsi:
+
+// Plugin activated/deactivated hooks
+add_action('plugins_loaded', 'tif_donation_init', 10);
+
+// Add plugin row meta links
+function tif_donation_plugin_row_meta($links, $file) {
+    if ($file === plugin_basename(TIF_DONATION_PLUGIN_FILE)) {
+        $links[] = '<a href="' . admin_url('edit.php?post_type=odenis&page=tif-statistics') . '">' . __('Statistika', 'kapital-tif-donation') . '</a>';
+        $links[] = '<a href="https://documenter.getpostman.com/view/14817621/2sA3dxCB1b" target="_blank">' . __('API Sənədləri', 'kapital-tif-donation') . '</a>';
+    }
+    return $links;
+}
+add_filter('plugin_row_meta', 'tif_donation_plugin_row_meta', 10, 2);
+
+// Add admin notice for test mode
+function tif_donation_global_admin_notice() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    
+    $screen = get_current_screen();
+    if ($screen && $screen->base === 'plugins') {
+        // Load config to check test mode
+        $config_file = TIF_DONATION_CONFIG_DIR . 'config.php';
+        if (file_exists($config_file)) {
+            $config = require $config_file;
+            if ($config['test_mode']) {
+                echo '<div class="notice notice-warning">';
+                echo '<p><strong>TIF Donation Plugin:</strong> ';
+                echo __('Test modunda işləyir. Production üçün config.php faylında test_mode parametrini false edin.', 'kapital-tif-donation');
+                echo '</p></div>';
+            }
+        }
+    }
+}
+add_action('admin_notices', 'tif_donation_global_admin_notice');
