@@ -1,6 +1,6 @@
 <?php
 /**
- * Database Operations Class
+ * Database Operations Class - Enhanced Version
  */
 
 // Prevent direct access
@@ -14,6 +14,11 @@ class TIF_Database {
      * Plugin configuration
      */
     private $config;
+    
+    /**
+     * Cache group name
+     */
+    private $cache_group = 'tif_donation';
     
     /**
      * Constructor
@@ -136,6 +141,9 @@ class TIF_Database {
         // Set initial status
         $this->update_order_status($order_id, 'Pending');
         
+        // Clear statistics cache
+        $this->clear_stats_cache();
+        
         return $order_id;
     }
     
@@ -213,6 +221,9 @@ class TIF_Database {
             }
         }
         
+        // Clear statistics cache when status changes
+        $this->clear_stats_cache();
+        
         return true;
     }
     
@@ -220,7 +231,12 @@ class TIF_Database {
      * Complete order
      */
     public function complete_order($order_id) {
-        return $this->update_order_status($order_id, 'Completed');
+        $result = $this->update_order_status($order_id, 'Completed');
+        
+        // Clear statistics cache
+        $this->clear_stats_cache();
+        
+        return $result;
     }
     
     /**
@@ -257,14 +273,18 @@ class TIF_Database {
             return false;
         }
         
-        $order_data = $api->get_order_status($bank_order_id);
-        
-        if (isset($order_data['order']['status'])) {
-            $this->update_order_status($post_id, $order_data['order']['status']);
+        try {
+            $order_data = $api->get_order_status($bank_order_id);
             
-            // Get current status term
-            $terms = wp_get_object_terms($post_id, $this->config['general']['taxonomy']);
-            return !empty($terms) ? $terms[0]->name : 'Unknown';
+            if (isset($order_data['order']['status'])) {
+                $this->update_order_status($post_id, $order_data['order']['status']);
+                
+                // Get current status term
+                $terms = wp_get_object_terms($post_id, $this->config['general']['taxonomy']);
+                return !empty($terms) ? $terms[0]->name : 'Unknown';
+            }
+        } catch (Exception $e) {
+            error_log('TIF Donation Sync Error: ' . $e->getMessage());
         }
         
         return false;
@@ -315,42 +335,222 @@ class TIF_Database {
     }
     
     /**
-     * Get order statistics
+     * Get order statistics with caching
      */
     public function get_statistics() {
         global $wpdb;
+        
+        // Try to get from cache first
+        $cache_key = 'tif_donation_stats';
+        $stats = wp_cache_get($cache_key, $this->cache_group);
+        
+        if (false !== $stats) {
+            return $stats;
+        }
         
         $post_type = $this->config['general']['post_type'];
         $taxonomy = $this->config['general']['taxonomy'];
         
         $stats = array();
         
-        // Total orders
-        $stats['total'] = wp_count_posts($post_type)->publish;
-        
-        // Orders by status
-        $results = $wpdb->get_results($wpdb->prepare("
-            SELECT t.name, tt.count 
-            FROM {$wpdb->terms} t 
-            JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id 
-            WHERE tt.taxonomy = %s
-        ", $taxonomy));
-        
-        foreach ($results as $result) {
-            $stats['by_status'][$result->name] = $result->count;
+        try {
+            // Total orders
+            $total_posts = wp_count_posts($post_type);
+            $stats['total'] = isset($total_posts->publish) ? $total_posts->publish : 0;
+            
+            // Orders by status
+            $results = $wpdb->get_results($wpdb->prepare("
+                SELECT t.name, tt.count 
+                FROM {$wpdb->terms} t 
+                JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id 
+                WHERE tt.taxonomy = %s
+            ", $taxonomy));
+            
+            $stats['by_status'] = array();
+            if (!empty($results)) {
+                foreach ($results as $result) {
+                    $stats['by_status'][$result->name] = intval($result->count);
+                }
+            }
+            
+            // Total amount with proper error handling
+            $total_amount = $wpdb->get_var($wpdb->prepare("
+                SELECT SUM(CAST(pm.meta_value AS DECIMAL(10,2))) 
+                FROM {$wpdb->postmeta} pm 
+                JOIN {$wpdb->posts} p ON pm.post_id = p.ID 
+                WHERE p.post_type = %s 
+                AND pm.meta_key = 'amount'
+                AND pm.meta_value IS NOT NULL
+                AND pm.meta_value != ''
+                AND pm.meta_value REGEXP '^[0-9]+(\.[0-9]+)?$'
+            ", $post_type));
+            
+            $stats['total_amount'] = floatval($total_amount);
+            
+            // Calculate success rate if we have completed payments
+            if (isset($stats['by_status']['Completed']) && $stats['total'] > 0) {
+                $stats['success_rate'] = round(($stats['by_status']['Completed'] / $stats['total']) * 100, 2);
+            } else {
+                $stats['success_rate'] = 0;
+            }
+            
+            // Get recent activity (last 30 days)
+            $recent_activity = $wpdb->get_var($wpdb->prepare("
+                SELECT COUNT(*) 
+                FROM {$wpdb->posts} 
+                WHERE post_type = %s 
+                AND post_status = 'publish'
+                AND post_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            ", $post_type));
+            
+            $stats['recent_activity'] = intval($recent_activity);
+            
+        } catch (Exception $e) {
+            // Fallback values in case of database error
+            error_log('TIF Donation Statistics Error: ' . $e->getMessage());
+            $stats = array(
+                'total' => 0,
+                'total_amount' => 0,
+                'by_status' => array(),
+                'success_rate' => 0,
+                'recent_activity' => 0
+            );
         }
         
-        // Total amount
-        $total_amount = $wpdb->get_var($wpdb->prepare("
-            SELECT SUM(CAST(pm.meta_value AS DECIMAL(10,2))) 
-            FROM {$wpdb->postmeta} pm 
-            JOIN {$wpdb->posts} p ON pm.post_id = p.ID 
-            WHERE p.post_type = %s 
-            AND pm.meta_key = 'amount'
-        ", $post_type));
-        
-        $stats['total_amount'] = floatval($total_amount);
+        // Cache for 5 minutes
+        wp_cache_set($cache_key, $stats, $this->cache_group, 300);
         
         return $stats;
+    }
+    
+    /**
+     * Clear statistics cache when needed
+     */
+    public function clear_stats_cache() {
+        wp_cache_delete('tif_donation_stats', $this->cache_group);
+        
+        // Also clear pending donations count cache
+        wp_cache_delete('pending_donations_count', 'tif_donation_admin');
+    }
+    
+    /**
+     * Get pending donations count
+     */
+    public function get_pending_count() {
+        $cache_key = 'pending_donations_count';
+        $count = wp_cache_get($cache_key, $this->cache_group);
+        
+        if (false === $count) {
+            $args = array(
+                'post_type' => $this->config['general']['post_type'],
+                'post_status' => 'publish',
+                'meta_query' => array(
+                    array(
+                        'key' => 'payment_status',
+                        'value' => 'Pending',
+                        'compare' => '='
+                    )
+                ),
+                'fields' => 'ids'
+            );
+            
+            $query = new WP_Query($args);
+            $count = $query->found_posts;
+            
+            wp_cache_set($cache_key, $count, $this->cache_group, 300); // 5 minutes
+        }
+        
+        return $count;
+    }
+    
+    /**
+     * Get orders by date range
+     */
+    public function get_orders_by_date_range($date_from, $date_to, $status = '') {
+        global $wpdb;
+        
+        $sql = "SELECT p.* FROM {$wpdb->posts} p";
+        
+        if (!empty($status)) {
+            $sql .= " JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id";
+            $sql .= " JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id";
+            $sql .= " JOIN {$wpdb->terms} t ON tt.term_id = t.term_id";
+        }
+        
+        $sql .= " WHERE p.post_type = %s AND p.post_status = 'publish'";
+        
+        $params = array($this->config['general']['post_type']);
+        
+        if (!empty($date_from)) {
+            $sql .= " AND p.post_date >= %s";
+            $params[] = $date_from . ' 00:00:00';
+        }
+        
+        if (!empty($date_to)) {
+            $sql .= " AND p.post_date <= %s";
+            $params[] = $date_to . ' 23:59:59';
+        }
+        
+        if (!empty($status)) {
+            $sql .= " AND tt.taxonomy = %s AND t.slug = %s";
+            $params[] = $this->config['general']['taxonomy'];
+            $params[] = $this->get_status_mapping($status);
+        }
+        
+        $sql .= " ORDER BY p.post_date DESC";
+        
+        return $wpdb->get_results($wpdb->prepare($sql, $params));
+    }
+    
+    /**
+     * Bulk update order statuses
+     */
+    public function bulk_update_statuses($order_ids, $new_status) {
+        $updated_count = 0;
+        
+        if (empty($order_ids) || !is_array($order_ids)) {
+            return $updated_count;
+        }
+        
+        foreach ($order_ids as $order_id) {
+            if ($this->update_order_status($order_id, $new_status)) {
+                $updated_count++;
+            }
+        }
+        
+        // Clear cache after bulk update
+        $this->clear_stats_cache();
+        
+        return $updated_count;
+    }
+    
+    /**
+     * Delete old log entries (cleanup function)
+     */
+    public function cleanup_old_data($days_to_keep = 365) {
+        global $wpdb;
+        
+        $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$days_to_keep} days"));
+        
+        // Get old posts
+        $old_posts = $wpdb->get_col($wpdb->prepare("
+            SELECT ID FROM {$wpdb->posts} 
+            WHERE post_type = %s 
+            AND post_date < %s
+        ", $this->config['general']['post_type'], $cutoff_date));
+        
+        $deleted_count = 0;
+        
+        foreach ($old_posts as $post_id) {
+            if (wp_delete_post($post_id, true)) {
+                $deleted_count++;
+            }
+        }
+        
+        if ($deleted_count > 0) {
+            $this->clear_stats_cache();
+        }
+        
+        return $deleted_count;
     }
 }
