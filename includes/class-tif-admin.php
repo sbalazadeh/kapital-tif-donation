@@ -1,6 +1,6 @@
 <?php
 /**
- * Frontend Operations Class
+ * Admin Operations Class
  */
 
 // Prevent direct access
@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class TIF_Frontend {
+class TIF_Admin {
     
     /**
      * Plugin configuration
@@ -40,310 +40,369 @@ class TIF_Frontend {
      * Initialize hooks
      */
     private function init_hooks() {
-        add_action('init', array($this, 'process_payment_callback'), 5);
-        add_action('init', array($this, 'setup_query_vars'));
-        add_shortcode('tif_payment_form', array($this, 'payment_form_shortcode'));
-        add_shortcode('tif_payment_result', array($this, 'payment_result_shortcode'));
-        add_filter('query_vars', array($this, 'add_query_vars'));
+        add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
+        add_action('save_post_' . $this->config['general']['post_type'], array($this, 'save_meta_box_data'));
+        add_action('wp_dashboard_setup', array($this, 'add_dashboard_widget'));
+        add_action('admin_menu', array($this, 'add_admin_menus'));
+        
+        // Customize admin columns
+        add_filter('manage_' . $this->config['general']['post_type'] . '_posts_columns', array($this, 'add_custom_columns'));
+        add_action('manage_' . $this->config['general']['post_type'] . '_posts_custom_column', array($this, 'fill_custom_columns'), 10, 2);
+        add_filter('manage_edit-' . $this->config['general']['post_type'] . '_sortable_columns', array($this, 'sortable_columns'));
+        add_action('pre_get_posts', array($this, 'orderby_columns'));
     }
     
     /**
-     * Add query vars
+     * Add meta boxes
      */
-    public function add_query_vars($vars) {
-        $vars[] = 'thank_you';
-        $vars[] = 'processing';
-        $vars[] = 'payment_failed';
-        $vars[] = 'callback';
-        return $vars;
+    public function add_meta_boxes() {
+        add_meta_box(
+            'tif_donation_details',
+            __('İanə məlumatları', 'kapital-tif-donation'),
+            array($this, 'donation_details_callback'),
+            $this->config['general']['post_type'],
+            'normal',
+            'high'
+        );
+        
+        add_meta_box(
+            'tif_transaction_details',
+            __('Əməliyyat məlumatları', 'kapital-tif-donation'),
+            array($this, 'transaction_details_callback'),
+            $this->config['general']['post_type'],
+            'normal',
+            'high'
+        );
     }
     
     /**
-     * Setup query vars
+     * Donation details meta box callback
      */
-    public function setup_query_vars() {
-        // This ensures query vars are available
+    public function donation_details_callback($post) {
+        wp_nonce_field($this->config['security']['nonce_actions']['donation_details'], 'tif_donation_details_nonce');
+        
+        $name = get_post_meta($post->ID, 'name', true);
+        $phone = get_post_meta($post->ID, 'phone', true);
+        $amount = get_post_meta($post->ID, 'amount', true);
+        $company = get_post_meta($post->ID, 'company', true);
+        $company_name = get_post_meta($post->ID, 'company_name', true);
+        
+        $this->load_template('admin/donation-details', array(
+            'name' => $name,
+            'phone' => $phone,
+            'amount' => $amount,
+            'company' => $company,
+            'company_name' => $company_name
+        ));
     }
     
     /**
-     * Payment form shortcode
+     * Transaction details meta box callback
      */
-    public function payment_form_shortcode($atts) {
-        // Don't show form if processing results
-        if (isset($_GET['callback']) || isset($_GET['thank_you']) || isset($_GET['processing']) || isset($_GET['payment_failed'])) {
-            return '';
-        }
+    public function transaction_details_callback($post) {
+        wp_nonce_field($this->config['security']['nonce_actions']['transaction_details'], 'tif_transaction_details_nonce');
         
-        ob_start();
+        $bank_order_id = get_post_meta($post->ID, 'bank_order_id', true);
+        $trans_id_local = get_post_meta($post->ID, 'transactionId_local', true);
+        $payment_method = get_post_meta($post->ID, 'payment_method', true);
+        $payment_date = get_post_meta($post->ID, 'payment_date', true);
+        $approval_code = get_post_meta($post->ID, 'approval_code', true);
+        $payment_status = get_post_meta($post->ID, 'payment_status', true);
+        $card_number = get_post_meta($post->ID, 'card_number', true);
+        $order_data = get_post_meta($post->ID, 'order_data', true);
         
-        // Process form submission
-        if (isset($_GET['gotopayment']) && $this->validate_form_data($_GET)) {
-            echo $this->process_payment_form($_GET);
-            return ob_get_clean();
-        }
+        // Get current taxonomy status
+        $terms = wp_get_object_terms($post->ID, $this->config['general']['taxonomy']);
+        $current_term = !empty($terms) ? $terms[0]->name : 'Unknown';
         
-        // Load form template
-        $this->load_template('payment-form', array('config' => $this->config));
-        
-        return ob_get_clean();
+        $this->load_template('admin/transaction-details', array(
+            'post_id' => $post->ID,
+            'bank_order_id' => $bank_order_id,
+            'trans_id_local' => $trans_id_local,
+            'payment_method' => $payment_method,
+            'payment_date' => $payment_date,
+            'approval_code' => $approval_code,
+            'payment_status' => $payment_status,
+            'card_number' => $card_number,
+            'order_data' => $order_data,
+            'current_term' => $current_term,
+            'nonce' => wp_create_nonce($this->config['security']['nonce_actions']['sync_status'])
+        ));
     }
     
     /**
-     * Payment result shortcode
+     * Save meta box data
      */
-    public function payment_result_shortcode($atts) {
-        if (isset($_GET['thank_you'])) {
-            return $this->render_thank_you_page();
-        }
-        
-        if (isset($_GET['payment_failed'])) {
-            return $this->render_payment_failed_page();
-        }
-        
-        return '';
-    }
-    
-    /**
-     * Validate form data
-     */
-    private function validate_form_data($data) {
-        $name = isset($data['ad_soyad']) ? sanitize_text_field($data['ad_soyad']) : '';
-        $phone = isset($data['telefon_nomresi']) ? sanitize_text_field($data['telefon_nomresi']) : '';
-        $amount = isset($data['mebleg']) ? floatval($data['mebleg']) : 0;
-        $company_type = isset($data['fiziki_huquqi']) ? sanitize_text_field($data['fiziki_huquqi']) : 'Fiziki şəxs';
-        $company_name = isset($data['teskilat_adi']) ? sanitize_text_field($data['teskilat_adi']) : '';
-        
-        // Validate required fields
-        if (empty($name) || empty($phone)) {
-            return false;
-        }
-        
-        // Validate amount
-        if ($amount < $this->config['payment']['min_amount'] || $amount > $this->config['payment']['max_amount']) {
-            return false;
-        }
-        
-        // Validate company name for legal entities
-        if ($company_type === 'Hüquqi şəxs' && empty($company_name)) {
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Process payment form
-     */
-    private function process_payment_form($data) {
-        $amount = floatval($data['mebleg']);
-        
-        // Create order
-        $order_id = $this->database->create_order($amount, $data);
-        
-        if (!$order_id) {
-            return '<div class="alert alert-danger">' . __('Sipariş yaradılarkən xəta baş verdi.', 'kapital-tif-donation') . '</div>';
-        }
-        
-        // Create payment order
-        $callback_url = home_url('/donation/?callback=1&wpid=' . $order_id);
-        $payment_response = $this->api->create_order($amount, $order_id, $callback_url);
-        
-        if ($payment_response && isset($payment_response['order']['id'])) {
-            return $this->api->generate_payment_redirect(
-                $payment_response['order']['id'],
-                $payment_response['order']['password']
-            );
-        }
-        
-        return '<div class="alert alert-danger">' . __('Ödəniş yaradılarkən xəta baş verdi. Zəhmət olmasa biraz sonra yenidən cəhd edin.', 'kapital-tif-donation') . '</div>';
-    }
-    
-    /**
-     * Process payment callback
-     */
-    public function process_payment_callback() {
-        // Handle processing page
-        if (isset($_GET['processing'])) {
-            $this->handle_processing_page();
+    public function save_meta_box_data($post_id) {
+        // Check nonces
+        if (!isset($_POST['tif_donation_details_nonce']) || 
+            !wp_verify_nonce($_POST['tif_donation_details_nonce'], $this->config['security']['nonce_actions']['donation_details'])) {
             return;
         }
         
-        // Check if this is a payment callback
-        if (!isset($_GET['callback']) || !isset($_GET['wpid'])) {
+        // Check autosave
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
             return;
         }
         
-        $wp_order_id = intval($_GET['wpid']);
-        if (!$wp_order_id) {
+        // Check permissions
+        if (!current_user_can('edit_post', $post_id)) {
             return;
         }
         
-        // Verify order exists
-        $post = get_post($wp_order_id);
-        if (!$post || $post->post_type !== $this->config['general']['post_type']) {
-            return;
+        // Save donation details
+        $donation_fields = array('name', 'phone', 'amount', 'company', 'company_name');
+        foreach ($donation_fields as $field) {
+            if (isset($_POST[$field])) {
+                $value = $field === 'amount' ? floatval($_POST[$field]) : sanitize_text_field($_POST[$field]);
+                update_post_meta($post_id, $field, $value);
+            }
         }
         
-        // Get callback status
-        $callback_status = isset($_GET['STATUS']) ? $_GET['STATUS'] : null;
+        // Save transaction details
+        $transaction_fields = array(
+            'bank_order_id', 'transactionId_local', 'payment_method', 
+            'payment_date', 'approval_code', 'card_number'
+        );
         
-        // Validate payment
-        $validation_result = $this->api->validate_callback($wp_order_id, $callback_status);
-        
-        if (!$validation_result['success']) {
-            wp_redirect($this->get_failure_redirect_url($wp_order_id, 'validation_failed'));
-            exit;
+        foreach ($transaction_fields as $field) {
+            if (isset($_POST[$field])) {
+                update_post_meta($post_id, $field, sanitize_text_field($_POST[$field]));
+            }
         }
         
-        // Process payment status
-        $result = $this->process_payment_status($wp_order_id, $validation_result['status'], $validation_result['order_data']);
-        
-        if (isset($result['redirect'])) {
-            wp_redirect($result['redirect']);
-            exit;
+        // Handle transaction ID as post title
+        if (isset($_POST['transactionId_local'])) {
+            $trans_id = sanitize_text_field($_POST['transactionId_local']);
+            if (!empty($trans_id)) {
+                wp_update_post(array(
+                    'ID' => $post_id,
+                    'post_title' => $trans_id
+                ));
+            }
         }
         
-        // Fallback redirect
-        wp_redirect(home_url('/donation/?thank_you=1&order_id=' . $wp_order_id . '&status=processing'));
-        exit;
-    }
-    
-    /**
-     * Handle processing page
-     */
-    private function handle_processing_page() {
-        $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
-        
-        if ($order_id > 0) {
-            $bank_order_id = get_post_meta($order_id, 'bank_order_id', true);
+        // Handle payment status update
+        if (isset($_POST['payment_status'])) {
+            $new_status = sanitize_text_field($_POST['payment_status']);
+            $old_status = get_post_meta($post_id, 'payment_status', true);
             
-            if ($bank_order_id) {
-                $status_response = $this->api->get_order_status($bank_order_id);
+            if ($new_status !== $old_status) {
+                update_post_meta($post_id, 'payment_status', $new_status);
+                $this->database->update_order_status($post_id, $new_status);
+            }
+        }
+    }
+    
+    /**
+     * Add dashboard widget
+     */
+    public function add_dashboard_widget() {
+        if (!$this->config['admin']['dashboard_widget']) {
+            return;
+        }
+        
+        wp_add_dashboard_widget(
+            'tif_recent_donations',
+            __('Son ianələr', 'kapital-tif-donation'),
+            array($this, 'dashboard_widget_callback')
+        );
+    }
+    
+    /**
+     * Dashboard widget callback
+     */
+    public function dashboard_widget_callback() {
+        $orders = $this->database->get_orders(array('posts_per_page' => 5));
+        
+        if (!empty($orders)) {
+            echo '<table class="wp-list-table widefat fixed striped">';
+            echo '<thead><tr>';
+            echo '<th>' . __('Transaction ID', 'kapital-tif-donation') . '</th>';
+            echo '<th>' . __('Ad və soyad', 'kapital-tif-donation') . '</th>';
+            echo '<th>' . __('Məbləğ', 'kapital-tif-donation') . '</th>';
+            echo '<th>' . __('Status', 'kapital-tif-donation') . '</th>';
+            echo '</tr></thead>';
+            echo '<tbody>';
+            
+            foreach ($orders as $order) {
+                $trans_id = get_post_meta($order->ID, 'transactionId_local', true);
+                $name = get_post_meta($order->ID, 'name', true);
+                $amount = get_post_meta($order->ID, 'amount', true);
                 
-                if ($status_response && isset($status_response['order']['status']) && $status_response['order']['status'] === 'FullyPaid') {
-                    $this->database->complete_order($order_id);
-                    wp_redirect(home_url('/donation/?thank_you=1&order_id=' . $order_id . '&status=success'));
-                    exit;
+                $status_terms = wp_get_object_terms($order->ID, $this->config['general']['taxonomy']);
+                $status = !empty($status_terms) ? $status_terms[0]->name : 'Unknown';
+                
+                echo '<tr>';
+                echo '<td><a href="' . get_edit_post_link($order->ID) . '">' . esc_html($trans_id) . '</a></td>';
+                echo '<td>' . esc_html($name) . '</td>';
+                echo '<td>' . esc_html($amount) . ' AZN</td>';
+                echo '<td>' . esc_html($status) . '</td>';
+                echo '</tr>';
+            }
+            
+            echo '</tbody></table>';
+            echo '<p><a href="' . admin_url('edit.php?post_type=' . $this->config['general']['post_type']) . '">' . __('Bütün ianələri görüntülə', 'kapital-tif-donation') . '</a></p>';
+        } else {
+            echo '<p>' . __('Hələ ki heç bir ianə qeydə alınmayıb.', 'kapital-tif-donation') . '</p>';
+        }
+    }
+    
+    /**
+     * Add admin menus
+     */
+    public function add_admin_menus() {
+        add_submenu_page(
+            'edit.php?post_type=' . $this->config['general']['post_type'],
+            __('İanələri ixrac et', 'kapital-tif-donation'),
+            __('İanələri ixrac et', 'kapital-tif-donation'),
+            $this->config['admin']['export_capability'],
+            'tif-export-donations',
+            array($this, 'export_donations_page')
+        );
+        
+        add_submenu_page(
+            'edit.php?post_type=' . $this->config['general']['post_type'],
+            __('Statistika', 'kapital-tif-donation'),
+            __('Statistika', 'kapital-tif-donation'),
+            $this->config['general']['capability'],
+            'tif-statistics',
+            array($this, 'statistics_page')
+        );
+    }
+    
+    /**
+     * Export donations page
+     */
+    public function export_donations_page() {
+        $show_results = false;
+        $donations = array();
+        
+        if (isset($_POST['tif_export_donations']) && 
+            check_admin_referer($this->config['security']['nonce_actions']['export_donations'])) {
+            
+            $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+            $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+            
+            $donations = $this->database->get_orders_for_export($date_from, $date_to);
+            $show_results = true;
+        }
+        
+        $this->load_template('admin/export-donations', array(
+            'show_results' => $show_results,
+            'donations' => $donations,
+            'nonce_action' => $this->config['security']['nonce_actions']['export_donations']
+        ));
+    }
+    
+    /**
+     * Statistics page
+     */
+    public function statistics_page() {
+        $stats = $this->database->get_statistics();
+        
+        $this->load_template('admin/statistics', array(
+            'stats' => $stats
+        ));
+    }
+    
+    /**
+     * Add custom columns
+     */
+    public function add_custom_columns($columns) {
+        $new_columns = array();
+        
+        if (isset($columns['title'])) {
+            $new_columns['title'] = 'Transaction ID Local';
+        }
+        
+        $new_columns['name'] = __('Ad və soyad', 'kapital-tif-donation');
+        $new_columns['phone'] = __('Telefon', 'kapital-tif-donation');
+        $new_columns['amount'] = __('Məbləğ', 'kapital-tif-donation');
+        $new_columns['company'] = __('Təşkilat', 'kapital-tif-donation');
+        $new_columns['bank_order_id'] = __('Bank Order ID', 'kapital-tif-donation');
+        $new_columns['payment_date'] = __('Ödəniş tarixi', 'kapital-tif-donation');
+        
+        foreach ($columns as $key => $value) {
+            if (!isset($new_columns[$key]) && $key != 'title') {
+                $new_columns[$key] = $value;
+            }
+        }
+        
+        return $new_columns;
+    }
+    
+    /**
+     * Fill custom columns
+     */
+    public function fill_custom_columns($column, $post_id) {
+        switch ($column) {
+            case 'name':
+                echo esc_html(get_post_meta($post_id, 'name', true));
+                break;
+            case 'phone':
+                echo esc_html(get_post_meta($post_id, 'phone', true));
+                break;
+            case 'amount':
+                $amount = get_post_meta($post_id, 'amount', true);
+                echo !empty($amount) ? esc_html($amount) . ' AZN' : '';
+                break;
+            case 'company':
+                $company = get_post_meta($post_id, 'company', true);
+                $company_name = get_post_meta($post_id, 'company_name', true);
+                
+                if ($company === 'Hüquqi şəxs' && !empty($company_name)) {
+                    echo esc_html($company_name);
+                } else {
+                    echo esc_html($company);
                 }
-            }
-            
-            wp_redirect(home_url('/donation/?thank_you=1&order_id=' . $order_id . '&status=processing'));
-            exit;
+                break;
+            case 'bank_order_id':
+                echo esc_html(get_post_meta($post_id, 'bank_order_id', true));
+                break;
+            case 'payment_date':
+                echo esc_html(get_post_meta($post_id, 'payment_date', true));
+                break;
         }
     }
     
     /**
-     * Process payment status
+     * Make columns sortable
      */
-    private function process_payment_status($wp_order_id, $status, $order_data) {
-        // Update order with additional data
-        update_post_meta($wp_order_id, 'order_data', $order_data);
+    public function sortable_columns($columns) {
+        $columns['name'] = 'name';
+        $columns['amount'] = 'amount';
+        $columns['payment_date'] = 'payment_date';
+        $columns['bank_order_id'] = 'bank_order_id';
+        return $columns;
+    }
+    
+    /**
+     * Handle column sorting
+     */
+    public function orderby_columns($query) {
+        if (!is_admin() || !$query->is_main_query() || 
+            $query->get('post_type') !== $this->config['general']['post_type']) {
+            return;
+        }
         
-        switch ($status) {
-            case 'FullyPaid':
-                $this->database->complete_order($wp_order_id);
-                return array(
-                    'success' => true,
-                    'redirect' => $this->get_success_redirect_url($wp_order_id, 'success')
-                );
-                
-            case 'PreAuthorized':
-            case 'Prepared':
-            case 'Preparing':
-            case 'Processing':
-                $this->database->update_order_status($wp_order_id, $status);
-                return array(
-                    'success' => true,
-                    'redirect' => $this->get_success_redirect_url($wp_order_id, 'processing')
-                );
-                
-            case 'Cancelled':
-                $this->database->update_order_status($wp_order_id, 'Cancelled');
-                return array(
-                    'success' => false,
-                    'redirect' => $this->get_failure_redirect_url($wp_order_id, 'cancelled')
-                );
-                
-            case 'Declined':
-                $this->database->update_order_status($wp_order_id, 'Failed');
-                return array(
-                    'success' => false,
-                    'redirect' => $this->get_failure_redirect_url($wp_order_id, 'declined')
-                );
-                
-            default:
-                $this->database->update_order_status($wp_order_id, 'Unknown: ' . $status);
-                return array(
-                    'success' => false,
-                    'redirect' => $this->get_failure_redirect_url($wp_order_id, urlencode($status))
-                );
+        $orderby = $query->get('orderby');
+        
+        $meta_orderby = array(
+            'name' => 'meta_value',
+            'amount' => 'meta_value_num',
+            'payment_date' => 'meta_value',
+            'bank_order_id' => 'meta_value'
+        );
+        
+        if (isset($meta_orderby[$orderby])) {
+            $query->set('meta_key', $orderby);
+            $query->set('orderby', $meta_orderby[$orderby]);
         }
     }
     
     /**
-     * Get success redirect URL
-     */
-    private function get_success_redirect_url($order_id, $status) {
-        return home_url('/donation/?thank_you=1&order_id=' . $order_id . '&status=' . $status);
-    }
-    
-    /**
-     * Get failure redirect URL
-     */
-    private function get_failure_redirect_url($order_id, $status) {
-        return home_url('/donation/?payment_failed=1&order_id=' . $order_id . '&status=' . $status);
-    }
-    
-    /**
-     * Render thank you page
-     */
-    private function render_thank_you_page() {
-        $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
-        $status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : '';
-        
-        if ($order_id > 0) {
-            $order = get_post($order_id);
-            if ($order && $order->post_type === $this->config['general']['post_type']) {
-                ob_start();
-                $this->load_template('thank-you', array(
-                    'order_id' => $order_id,
-                    'status' => $status,
-                    'order' => $order
-                ));
-                return ob_get_clean();
-            }
-        }
-        
-        return '';
-    }
-    
-    /**
-     * Render payment failed page
-     */
-    private function render_payment_failed_page() {
-        $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
-        $status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : 'unknown';
-        $error = isset($_GET['error']) ? sanitize_text_field($_GET['error']) : '';
-        
-        if ($order_id > 0) {
-            $order = get_post($order_id);
-            if ($order && $order->post_type === $this->config['general']['post_type']) {
-                ob_start();
-                $this->load_template('payment-failed', array(
-                    'order_id' => $order_id,
-                    'status' => $status,
-                    'error' => $error,
-                    'order' => $order
-                ));
-                return ob_get_clean();
-            }
-        }
-        
-        return '';
-    }
-    
-    /**
-     * Load template
+     * Load admin template
      */
     private function load_template($template, $args = array()) {
         $template_file = TIF_DONATION_TEMPLATES_DIR . $template . '.php';
@@ -352,7 +411,9 @@ class TIF_Frontend {
             extract($args);
             include $template_file;
         } else {
-            echo '<p>' . sprintf(__('Template faylı tapılmadı: %s', 'kapital-tif-donation'), $template) . '</p>';
+            echo '<div class="notice notice-error"><p>' . 
+                 sprintf(__('Template faylı tapılmadı: %s', 'kapital-tif-donation'), $template) . 
+                 '</p></div>';
         }
     }
 }
