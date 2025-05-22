@@ -29,6 +29,7 @@ class TIF_Admin {
         add_action('wp_dashboard_setup', array($this, 'add_dashboard_widget'));
         add_action('admin_menu', array($this, 'add_admin_menus'));
         add_action('admin_notices', array($this, 'show_admin_notices'));
+        add_action('admin_notices', array($this, 'show_bulk_action_notices'));
         
         // Customize admin columns
         add_filter('manage_' . $this->config['general']['post_type'] . '_posts_columns', array($this, 'add_custom_columns'));
@@ -121,6 +122,19 @@ class TIF_Admin {
             echo '<p><strong>' . __('API Əlaqə Xətası:', 'kapital-tif-donation') . '</strong> ';
             echo esc_html($api_status['message']);
             echo '</p></div>';
+        }
+    }
+    
+    /**
+     * Show bulk action results
+     */
+    public function show_bulk_action_notices() {
+        // Show sync results
+        if (isset($_GET['tif_synced'])) {
+            $synced_count = intval($_GET['tif_synced']);
+            echo '<div class="notice notice-success is-dismissible">';
+            echo '<p>' . sprintf(_n('%d ianənin statusu yeniləndi.', '%d ianənin statusu yeniləndi.', $synced_count, 'kapital-tif-donation'), $synced_count) . '</p>';
+            echo '</div>';
         }
     }
     
@@ -748,19 +762,3 @@ class TIF_Admin {
         }
     }
 }
-
-/**
- * Show bulk action results
- */
-public function show_bulk_action_notices() {
-    // Show sync results
-    if (isset($_GET['tif_synced'])) {
-        $synced_count = intval($_GET['tif_synced']);
-        echo '<div class="notice notice-success is-dismissible">';
-        echo '<p>' . sprintf(_n('%d ianənin statusu yeniləndi.', '%d ianənin statusu yeniləndi.', $synced_count, 'kapital-tif-donation'), $synced_count) . '</p>';
-        echo '</div>';
-    }
-}
-
-// init_hooks() methoduna əlavə edin:
-add_action('admin_notices', array($this, 'show_bulk_action_notices'));
