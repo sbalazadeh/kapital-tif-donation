@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin Operations Classs
+ * Admin Operations Class
  */
 
 // Prevent direct access
