@@ -149,12 +149,9 @@ class TIF_Frontend {
             $errors[] = __('Hüquqi şəxs üçün təşkilat adı məcburidir.', 'kapital-tif-donation');
         }
         
-        // Store errors in session for display
+        // Store errors in transient instead of session for better performance
         if (!empty($errors)) {
-            if (!session_id()) {
-                session_start();
-            }
-            $_SESSION['tif_form_errors'] = $errors;
+            set_transient('tif_form_errors_' . $this->get_user_ip(), $errors, 300); // 5 minutes
             return false;
         }
         
@@ -330,8 +327,6 @@ class TIF_Frontend {
         exit;
     }
     
-    // ... Rest of the methods remain the same but with added error handling and logging
-    
     private function handle_processing_page() {
         $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
         
@@ -491,65 +486,4 @@ class TIF_Frontend {
             echo '<p>' . sprintf(__('Template faylı tapılmadı: %s', 'kapital-tif-donation'), esc_html($template)) . '</p>';
         }
     }
-}
-
-// includes/class-tif-frontend.php içində bu əlavəni edin:
-
-/**
- * Initialize session if needed
- */
-private function init_session() {
-    if (!session_id() && !headers_sent()) {
-        session_start();
-    }
-}
-
-/**
- * Enhanced form validation with detailed error messages
- */
-private function validate_form_data($data) {
-    $errors = array();
-    
-    $name = isset($data['ad_soyad']) ? sanitize_text_field($data['ad_soyad']) : '';
-    $phone = isset($data['telefon_nomresi']) ? sanitize_text_field($data['telefon_nomresi']) : '';
-    $amount = isset($data['mebleg']) ? floatval($data['mebleg']) : 0;
-    $company_type = isset($data['fiziki_huquqi']) ? sanitize_text_field($data['fiziki_huquqi']) : 'Fiziki şəxs';
-    $company_name = isset($data['teskilat_adi']) ? sanitize_text_field($data['teskilat_adi']) : '';
-    
-    // Validate name
-    if (empty($name) || strlen($name) < 2) {
-        $errors[] = __('Ad və soyad ən azı 2 simvol olmalıdır.', 'kapital-tif-donation');
-    }
-    
-    // Validate phone - Azerbaijan format
-    $clean_phone = preg_replace('/[^\d]/', '', $phone);
-    if (empty($clean_phone) || strlen($clean_phone) < 9 || strlen($clean_phone) > 13) {
-        $errors[] = __('Telefon nömrəsi düzgün formatda deyil.', 'kapital-tif-donation');
-    }
-    
-    // Validate amount
-    if ($amount < $this->config['payment']['min_amount']) {
-        $errors[] = sprintf(__('Minimum məbləğ %s %s olmalıdır.', 'kapital-tif-donation'), 
-                           $this->config['payment']['min_amount'], 
-                           $this->config['payment']['currency']);
-    }
-    
-    if ($amount > $this->config['payment']['max_amount']) {
-        $errors[] = sprintf(__('Maximum məbləğ %s %s olmalıdır.', 'kapital-tif-donation'), 
-                           $this->config['payment']['max_amount'], 
-                           $this->config['payment']['currency']);
-    }
-    
-    // Validate company name for legal entities
-    if ($company_type === 'Hüquqi şəxs' && (empty($company_name) || strlen($company_name) < 2)) {
-        $errors[] = __('Hüquqi şəxs üçün təşkilat adı məcburidir.', 'kapital-tif-donation');
-    }
-    
-    // Store errors in transient instead of session for better performance
-    if (!empty($errors)) {
-        set_transient('tif_form_errors_' . $this->get_user_ip(), $errors, 300); // 5 minutes
-        return false;
-    }
-    
-    return true;
 }
