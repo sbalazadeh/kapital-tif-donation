@@ -10,6 +10,7 @@
         initCompanyFieldToggle();
         initStatusSync();
         initExportFunctionality();
+        enhancePostListTable();
     });
     
     /**
@@ -293,12 +294,20 @@
     }
     
     /**
-     * Enhance post list table
+     * Enhance post list table - FİXED FUNCTION
      */
     function enhancePostListTable() {
         var $postTable = $('.wp-list-table');
         
         if ($postTable.length === 0 || !$postTable.hasClass('posts')) {
+            return;
+        }
+        
+        // Check if we're on the donations post type page
+        var urlParams = new URLSearchParams(window.location.search);
+        var postType = urlParams.get('post_type');
+        
+        if (postType !== 'odenis') {
             return;
         }
         
@@ -323,6 +332,12 @@
                         var id = $link.data('post-id');
                         
                         $link.text('Yenilənir...');
+                        
+                        // Check if tif_admin_ajax is available
+                        if (typeof tif_admin_ajax === 'undefined') {
+                            $link.text('AJAX təyin edilməyib!').css('color', 'red');
+                            return;
+                        }
                         
                         $.ajax({
                             url: ajaxurl,
@@ -352,8 +367,5 @@
             }
         });
     }
-    
-    // Initialize post list table enhancements
-    enhancePostListTable();
 
 })(jQuery);
