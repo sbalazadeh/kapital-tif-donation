@@ -84,7 +84,7 @@ return array(
     
     // Debug settings - Keep enabled during testing phase
     'debug' => array(
-        'log_api_requests' => true, // Keep TRUE for testing
+        'log_api_requests' => false, // Keep TRUE for testing
         'log_file' => WP_CONTENT_DIR . '/uploads/tif-donation-logs.txt',
         'max_log_size' => 5 * 1024 * 1024, // 5MB
     ),
