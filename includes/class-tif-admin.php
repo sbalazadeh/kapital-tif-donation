@@ -748,3 +748,19 @@ class TIF_Admin {
         }
     }
 }
+
+/**
+ * Show bulk action results
+ */
+public function show_bulk_action_notices() {
+    // Show sync results
+    if (isset($_GET['tif_synced'])) {
+        $synced_count = intval($_GET['tif_synced']);
+        echo '<div class="notice notice-success is-dismissible">';
+        echo '<p>' . sprintf(_n('%d ianənin statusu yeniləndi.', '%d ianənin statusu yeniləndi.', $synced_count, 'kapital-tif-donation'), $synced_count) . '</p>';
+        echo '</div>';
+    }
+}
+
+// init_hooks() methoduna əlavə edin:
+add_action('admin_notices', array($this, 'show_bulk_action_notices'));
