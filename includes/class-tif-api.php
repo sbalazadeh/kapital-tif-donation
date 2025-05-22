@@ -317,7 +317,7 @@ class TIF_API {
     }
     
     /**
-     * Log message
+     * Log message with better error handling
      */
     private function log($message, $level = 'info') {
         if (!$this->config['debug']['log_api_requests']) {
@@ -328,12 +328,24 @@ class TIF_API {
         $timestamp = date('Y-m-d H:i:s');
         $log_entry = "[{$timestamp}] [API] [{$level}] {$message}" . PHP_EOL;
         
+        // Ensure log directory exists
+        $log_dir = dirname($log_file);
+        if (!file_exists($log_dir)) {
+            wp_mkdir_p($log_dir);
+        }
+        
         // Check log file size
         if (file_exists($log_file) && filesize($log_file) > $this->config['debug']['max_log_size']) {
             rename($log_file, $log_file . '.old');
         }
         
-        file_put_contents($log_file, $log_entry, FILE_APPEND | LOCK_EX);
+        // Write log with error handling
+        $result = file_put_contents($log_file, $log_entry, FILE_APPEND | LOCK_EX);
+        
+        // Fallback to error_log if file writing fails
+        if ($result === false) {
+            error_log("TIF Donation Log: {$message}");
+        }
     }
     
     /**
