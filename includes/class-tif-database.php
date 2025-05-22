@@ -387,6 +387,25 @@ class TIF_Database {
             
             $stats['total_amount'] = floatval($total_amount);
             
+            // Completed orders amount - YENİ ƏLAVƏ
+            $completed_amount = $wpdb->get_var($wpdb->prepare("
+                SELECT SUM(CAST(pm.meta_value AS DECIMAL(10,2))) 
+                FROM {$wpdb->postmeta} pm 
+                JOIN {$wpdb->posts} p ON pm.post_id = p.ID 
+                JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
+                JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+                WHERE p.post_type = %s 
+                AND pm.meta_key = 'amount'
+                AND pm.meta_value IS NOT NULL
+                AND pm.meta_value != ''
+                AND pm.meta_value REGEXP '^[0-9]+(\.[0-9]+)?$'
+                AND tt.taxonomy = %s
+                AND t.slug = 'completed'
+            ", $post_type, $taxonomy));
+            
+            $stats['completed_amount'] = floatval($completed_amount);
+            
             // Calculate success rate if we have completed payments
             if (isset($stats['by_status']['Completed']) && $stats['total'] > 0) {
                 $stats['success_rate'] = round(($stats['by_status']['Completed'] / $stats['total']) * 100, 2);
@@ -411,6 +430,7 @@ class TIF_Database {
             $stats = array(
                 'total' => 0,
                 'total_amount' => 0,
+                'completed_amount' => 0, // YENİ ƏLAVƏ
                 'by_status' => array(),
                 'success_rate' => 0,
                 'recent_activity' => 0
