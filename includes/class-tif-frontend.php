@@ -31,18 +31,30 @@ class TIF_Frontend {
         add_shortcode('tif_payment_result', array($this, 'payment_result_shortcode'));
         add_filter('query_vars', array($this, 'add_query_vars'));
         
-        // Rate limiting for callbacks
-        // add_action('wp_head', array($this, 'add_security_headers')); // Söndürüldü
+        // Security headers-i erkən hook ilə əlavə et
+        add_action('template_redirect', array($this, 'add_security_headers'), 1);
     }
     
     /**
-     * Add security headers for payment pages
+     * Add security headers for payment pages - Fixed version
      */
     public function add_security_headers() {
+        // Headers artıq göndərildisə, heç nə etmə
+        if (headers_sent()) {
+            return;
+        }
+        
+        // Yalnız payment səhifələrində header əlavə et
         if ($this->is_payment_page()) {
-            // Prevent iframe embedding for security
             header('X-Frame-Options: DENY');
             header('X-Content-Type-Options: nosniff');
+            header('X-XSS-Protection: 1; mode=block');
+            header('Referrer-Policy: strict-origin-when-cross-origin');
+            
+            // Cache control for payment pages
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+            header('Pragma: no-cache');
+            header('Expires: 0');
         }
     }
     
@@ -50,11 +62,17 @@ class TIF_Frontend {
      * Check if current page is payment related
      */
     private function is_payment_page() {
+        // Callback səhifələri
+        if (isset($_GET['callback']) || isset($_GET['thank_you']) || 
+            isset($_GET['payment_failed']) || isset($_GET['processing'])) {
+            return true;
+        }
+        
+        // Shortcode olan səhifələr
         global $post;
         return $post && (
             has_shortcode($post->post_content, 'tif_payment_form') ||
-            has_shortcode($post->post_content, 'tif_payment_result') ||
-            isset($_GET['callback']) || isset($_GET['thank_you'])
+            has_shortcode($post->post_content, 'tif_payment_result')
         );
     }
     
@@ -76,6 +94,18 @@ class TIF_Frontend {
             return '';
         }
         
+        // Form validation xətaları göstər
+        $form_errors = $this->get_form_errors();
+        $error_html = '';
+        if (!empty($form_errors)) {
+            $error_html = '<div class="alert alert-danger"><ul>';
+            foreach ($form_errors as $error) {
+                $error_html .= '<li>' . esc_html($error) . '</li>';
+            }
+            $error_html .= '</ul></div>';
+            $this->clear_form_errors();
+        }
+        
         // Process form submission
         if (isset($_GET['gotopayment']) && $this->validate_form_data($_GET)) {
             return $this->process_payment_form($_GET);
@@ -93,7 +123,7 @@ class TIF_Frontend {
             wp_cache_set($cache_key, $cached_form, $this->cache_group, $this->cache_expiry);
         }
         
-        return $cached_form;
+        return $error_html . $cached_form;
     }
     
     public function payment_result_shortcode($atts) {
@@ -106,6 +136,23 @@ class TIF_Frontend {
         }
         
         return '';
+    }
+    
+    /**
+     * Get form errors from transient
+     */
+    private function get_form_errors() {
+        $user_ip = $this->get_user_ip();
+        $errors = get_transient('tif_form_errors_' . md5($user_ip));
+        return $errors ? $errors : array();
+    }
+    
+    /**
+     * Clear form errors
+     */
+    private function clear_form_errors() {
+        $user_ip = $this->get_user_ip();
+        delete_transient('tif_form_errors_' . md5($user_ip));
     }
     
     /**
@@ -151,7 +198,8 @@ class TIF_Frontend {
         
         // Store errors in transient instead of session for better performance
         if (!empty($errors)) {
-            set_transient('tif_form_errors_' . $this->get_user_ip(), $errors, 300); // 5 minutes
+            $user_ip = $this->get_user_ip();
+            set_transient('tif_form_errors_' . md5($user_ip), $errors, 300); // 5 minutes
             return false;
         }
         
