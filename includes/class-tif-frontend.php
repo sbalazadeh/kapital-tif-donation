@@ -32,7 +32,7 @@ class TIF_Frontend {
         add_filter('query_vars', array($this, 'add_query_vars'));
         
         // Rate limiting for callbacks
-        add_action('wp_head', array($this, 'add_security_headers'));
+        // add_action('wp_head', array($this, 'add_security_headers')); // Söndürüldü
     }
     
     /**
