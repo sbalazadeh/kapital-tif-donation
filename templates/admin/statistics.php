@@ -25,15 +25,15 @@ if (!defined('ABSPATH')) {
            <div class="tif-stats-card">
                 <div class="tif-stats-card-content">
                     <h3><?php _e('Ümumi Məbləğ', 'kapital-tif-donation'); ?></h3>
-                    <p class="tif-stats-number"><?php echo number_format($stats['total_amount'], 2); ?> AZN</p>
-                    <?php if (isset($stats['completed_amount']) && $stats['completed_amount'] > 0): ?>
+                    <p class="tif-stats-number">
+                        <?php echo number_format($stats['completed_amount'], 2); ?> AZN
+                    </p>
                     <p class="tif-stats-sub">
-                        <small style="color: #28a745; font-weight: bold;">
-                            <?php _e('Tamamlanmış:', 'kapital-tif-donation'); ?> 
-                            <?php echo number_format($stats['completed_amount'], 2); ?> AZN
+                        <small style="color: #dc3232; font-weight: bold;">
+                            <?php _e('Toplam:', 'kapital-tif-donation'); ?> 
+                            <?php echo number_format($stats['total_amount'], 2); ?> AZN
                         </small>
                     </p>
-                    <?php endif; ?>
                 </div>
             </div>
             
