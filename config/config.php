@@ -1,6 +1,6 @@
 <?php
 /**
- * Configuration file for Kapital TIF Donation Plugin
+ * Configuration file for Kapital TIF Donation Plugin - PRODUCTION READY
  */
 
 // Prevent direct access
@@ -19,11 +19,10 @@ return array(
         'capability' => 'manage_options',
     ),
     
-    // Test mode - Keep TRUE until all testing is complete
-    // Set to FALSE only when ready for production deployment
-    'test_mode' => true,
+    //  RODUCTION MODE ACTIVE
+    'test_mode' => false,
     
-    // API Configuration - Test Environment
+    // API Configuration - Test Environment (saxlanılır test üçün)
     'test' => array(
         'api_url' => 'https://txpgtst.kapitalbank.az/api',
         'hpp_url' => 'https://txpgtst.kapitalbank.az/flex',
@@ -31,12 +30,12 @@ return array(
         'password' => 'kapital123',
     ),
     
-    // API Configuration - Production Environment
+    // API Configuration - Production Environment - REAL CREDENTIALS
     'production' => array(
         'api_url' => 'https://e-commerce.kapitalbank.az/api',
         'hpp_url' => 'https://e-commerce.kapitalbank.az/flex',
-        'username' => 'TerminalSys/kapital', // Replace with production credentials
-        'password' => 'kapital123', // Replace with production credentials
+        'username' => 'TerminalSys/E1020337',
+        'password' => 'U9q0:83S*&QyKl1eo7y)',
     ),
     
     // Payment settings
@@ -71,9 +70,9 @@ return array(
         'cancelled' => 'Cancelled',
     ),
     
-    // Security settings - Testing configuration
+    // Security settings - PRODUCTION SECURITY
     'security' => array(
-        'ssl_verify' => false, // Keep FALSE for testing, set TRUE for production
+        'ssl_verify' => true, // SSL aktivləşdirildi
         'nonce_actions' => array(
             'donation_details' => 'tif_donation_details',
             'transaction_details' => 'tif_transaction_details',
@@ -82,9 +81,9 @@ return array(
         ),
     ),
     
-    // Debug settings - Keep enabled during testing phase
+    // Debug settings - PRODUCTION DEBUG DISABLED
     'debug' => array(
-        'log_api_requests' => false, // Keep TRUE for testing
+        'log_api_requests' => false, // Log-lar söndürülüb
         'log_file' => WP_CONTENT_DIR . '/uploads/tif-donation-logs.txt',
         'max_log_size' => 5 * 1024 * 1024, // 5MB
     ),
