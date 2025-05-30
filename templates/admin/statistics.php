@@ -46,11 +46,17 @@ if (!defined('ABSPATH')) {
             </div>
             <?php endif; ?>
             
-            <?php if (isset($stats['by_status']['Failed'])): ?>
+            <?php if ($stats['failed_count'] > 0): ?>
             <div class="tif-stats-card tif-stats-card-danger">
                 <div class="tif-stats-card-content">
                     <h3><?php _e('Uğursuz Ödənişlər', 'kapital-tif-donation'); ?></h3>
-                    <p class="tif-stats-number"><?php echo number_format($stats['by_status']['Failed']); ?></p>
+                    <p class="tif-stats-number"><?php echo number_format($stats['failed_count']); ?></p>
+                    <p class="tif-stats-sub">
+                        <small style="color: #dc3232; font-weight: bold;">
+                            <?php _e('Uğursuz məbləğ:', 'kapital-tif-donation'); ?> 
+                            <?php echo number_format($stats['failed_amount'], 2); ?> AZN
+                        </small>
+                    </p>
                 </div>
             </div>
             <?php endif; ?>
