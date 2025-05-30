@@ -373,7 +373,7 @@ class TIF_Database {
                 }
             }
             
-            // Total amount with proper error handling
+            // Total amount - bütün ianələrin məbləği
             $total_amount = $wpdb->get_var($wpdb->prepare("
                 SELECT SUM(CAST(pm.meta_value AS DECIMAL(10,2))) 
                 FROM {$wpdb->postmeta} pm 
@@ -387,7 +387,7 @@ class TIF_Database {
             
             $stats['total_amount'] = floatval($total_amount);
             
-            // Completed orders amount - YENİ ƏLAVƏ
+            // Completed orders amount - yalnız completed statuslu ianələrin məbləği
             $completed_amount = $wpdb->get_var($wpdb->prepare("
                 SELECT SUM(CAST(pm.meta_value AS DECIMAL(10,2))) 
                 FROM {$wpdb->postmeta} pm 
@@ -405,6 +405,41 @@ class TIF_Database {
             ", $post_type, $taxonomy));
             
             $stats['completed_amount'] = floatval($completed_amount);
+            
+            // Failed orders count - pending, failed, cancelled birləşdiririk
+            $failed_count = $wpdb->get_var($wpdb->prepare("
+                SELECT COUNT(DISTINCT p.ID)
+                FROM {$wpdb->posts} p 
+                JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
+                JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+                WHERE p.post_type = %s 
+                AND tt.taxonomy = %s
+                AND t.slug IN ('pending', 'failed', 'cancelled')
+            ", $post_type, $taxonomy));
+            
+            // Failed orders amount - pending, failed, cancelled məbləğləri  
+            $failed_amount = $wpdb->get_var($wpdb->prepare("
+                SELECT SUM(CAST(pm.meta_value AS DECIMAL(10,2))) 
+                FROM {$wpdb->postmeta} pm 
+                JOIN {$wpdb->posts} p ON pm.post_id = p.ID 
+                JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
+                JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+                WHERE p.post_type = %s 
+                AND pm.meta_key = 'amount'
+                AND pm.meta_value IS NOT NULL
+                AND pm.meta_value != ''
+                AND pm.meta_value REGEXP '^[0-9]+(\.[0-9]+)?$'
+                AND tt.taxonomy = %s
+                AND t.slug IN ('pending', 'failed', 'cancelled')
+            ", $post_type, $taxonomy));
+            
+            $stats['failed_amount'] = floatval($failed_amount);
+            $stats['failed_count'] = intval($failed_count);
+            
+            // Override by_status for Failed to include pending + failed + cancelled
+            $stats['by_status']['Failed'] = $stats['failed_count'];
             
             // Calculate success rate if we have completed payments
             if (isset($stats['by_status']['Completed']) && $stats['total'] > 0) {
@@ -430,7 +465,9 @@ class TIF_Database {
             $stats = array(
                 'total' => 0,
                 'total_amount' => 0,
-                'completed_amount' => 0, // YENİ ƏLAVƏ
+                'completed_amount' => 0,
+                'failed_amount' => 0,
+                'failed_count' => 0,
                 'by_status' => array(),
                 'success_rate' => 0,
                 'recent_activity' => 0
