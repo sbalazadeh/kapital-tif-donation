@@ -29,8 +29,8 @@ if (!defined('ABSPATH')) {
                         <?php echo number_format($stats['completed_amount'], 2); ?> AZN
                     </p>
                     <p class="tif-stats-sub">
-                        <small style="color: #dc3232; font-weight: bold;">
-                            <?php _e('Toplam:', 'kapital-tif-donation'); ?> 
+                        <small style="color: #666; font-weight: normal;">
+                            <?php _e('Toplam məbləğ:', 'kapital-tif-donation'); ?> 
                             <?php echo number_format($stats['total_amount'], 2); ?> AZN
                         </small>
                     </p>
