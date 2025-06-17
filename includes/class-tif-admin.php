@@ -354,13 +354,15 @@ class TIF_Admin {
         $amount = get_post_meta($post->ID, 'amount', true);
         $company = get_post_meta($post->ID, 'company', true);
         $company_name = get_post_meta($post->ID, 'company_name', true);
+        $voen = get_post_meta($post->ID, 'voen', true); // YENİ FIELD
         
         $this->load_template('admin/donation-details', array(
             'name' => $name,
             'phone' => $phone,
             'amount' => $amount,
             'company' => $company,
-            'company_name' => $company_name
+            'company_name' => $company_name,
+            'voen' => $voen // YENİ VARIABLE
         ));
     }
     
