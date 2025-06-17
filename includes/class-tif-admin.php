@@ -242,12 +242,37 @@ class TIF_Admin {
         // Add BOM for UTF-8
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
         
-        // Headers
+        // Headers - VÖEN əlavə edildi
         $headers = array(
             'ID', 'Transaction ID', 'Ad və soyad', 'Telefon', 'Məbləğ',
-            'Təşkilat', 'Təşkilatın adı', 'Ödəniş tarixi', 'Status', 'Bank Order ID'
+            'Təşkilat', 'Qurumun adı', 'VÖEN', 'Ödəniş tarixi', 'Status', 'Bank Order ID'
         );
         fputcsv($output, $headers);
+        
+        // Data - VÖEN əlavə edildi
+        foreach ($donations as $donation) {
+            $status_terms = wp_get_object_terms($donation->ID, $this->config['general']['taxonomy']);
+            $status = !empty($status_terms) ? $status_terms[0]->name : get_post_meta($donation->ID, 'payment_status', true);
+            
+            $row = array(
+                $donation->ID,
+                get_post_meta($donation->ID, 'transactionId_local', true),
+                get_post_meta($donation->ID, 'name', true),
+                get_post_meta($donation->ID, 'phone', true),
+                get_post_meta($donation->ID, 'amount', true),
+                get_post_meta($donation->ID, 'company', true),
+                get_post_meta($donation->ID, 'company_name', true),
+                get_post_meta($donation->ID, 'voen', true), // YENİ FIELD
+                get_post_meta($donation->ID, 'payment_date', true),
+                $status,
+                get_post_meta($donation->ID, 'bank_order_id', true)
+            );
+            
+            fputcsv($output, $row);
+        }
+        
+        fclose($output);
+    }
         
         // Data
         foreach ($donations as $donation) {
