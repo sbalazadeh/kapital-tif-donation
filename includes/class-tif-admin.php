@@ -764,9 +764,10 @@ class TIF_Admin {
         $columns['amount'] = 'amount';
         $columns['payment_date'] = 'payment_date';
         $columns['bank_order_id'] = 'bank_order_id';
+        $columns['voen'] = 'voen'; // YENİ SORTABLE COLUMN
         return $columns;
     }
-    
+
     public function orderby_columns($query) {
         if (!is_admin() || !$query->is_main_query() || 
             $query->get('post_type') !== $this->config['general']['post_type']) {
@@ -779,7 +780,8 @@ class TIF_Admin {
             'name' => 'meta_value',
             'amount' => 'meta_value_num',
             'payment_date' => 'meta_value',
-            'bank_order_id' => 'meta_value'
+            'bank_order_id' => 'meta_value',
+            'voen' => 'meta_value' // YENİ ORDERBY
         );
         
         if (isset($meta_orderby[$orderby])) {
