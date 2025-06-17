@@ -1,306 +1,259 @@
-/* Kapital TIF Donation Plugin - Frontend Styles */
+/* Flat Tab Design - TIF Style Payment Form */
 
-/* Payment Form Styles */
+/* Main Container - Çərçivəsiz və flat */
+.tif-donation-container {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+}
+
 .tif-payment-form {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
 }
 
+/* Tab Navigation - Flat stil */
+.nav-segment {
+    border: 1px solid #ddd;
+    border-radius: 50px;
+    padding: 4px;
+    background-color: #f8f9fa;
+    margin-bottom: 3rem;
+}
+
+.nav-segment .nav-link {
+    border-radius: 46px;
+    padding: 16px 32px;
+    font-weight: 600;
+    color: #6c757d;
+    border: none;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    margin: 0 2px;
+    background: transparent;
+    font-size: 16px;
+}
+
+.nav-segment .nav-link:hover {
+    color: #495057;
+    background-color: rgba(0,123,255,0.05);
+}
+
+.nav-segment .nav-link.active {
+    background-color: #007bff;
+    color: #fff;
+    box-shadow: none;
+}
+
+/* Tab Content - Geniş və flat */
+.tab-content {
+    padding-top: 0;
+    min-height: auto;
+    background: transparent;
+}
+
+.tab-pane {
+    animation: fadeIn 0.3s ease-in-out;
+    padding: 2rem 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Form Elements - Flat style */
 .tif-payment-form .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 1.5rem;
 }
 
-.tif-payment-form .form-group.required label:after {
+.tif-payment-form .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 12px;
+    font-size: 16px;
+    display: block;
+}
+
+.tif-payment-form .form-group.required .form-label:after {
     content: " *";
     color: #dc3545;
     font-weight: bold;
 }
 
-.tif-payment-form .form-check-group {
-    margin-bottom: 20px;
-    display: flex;
-    gap: 20px;
-}
-
-.tif-payment-form .form-check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.tif-payment-form .input-label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #333;
-}
-
+/* Form Inputs - Minimalist design */
 .tif-payment-form .form-control {
-    display: block;
-    width: 100%;
-    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px 20px;
     font-size: 16px;
     line-height: 1.5;
-    color: #495057;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
     background-color: #fff;
-    background-clip: padding-box;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    width: 100%;
 }
 
 .tif-payment-form .form-control:focus {
-    color: #495057;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    outline: none;
     background-color: #fff;
-    border-color: #80bdff;
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-.tif-payment-form .btn {
-    display: inline-block;
-    font-weight: 600;
-    color: #fff;
-    text-align: center;
-    vertical-align: middle;
-    cursor: pointer;
+.tif-payment-form .form-control.is-invalid,
+.tif-payment-form .form-control.error {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.tif-payment-form .form-control::placeholder {
+    color: #adb5bd;
+    font-size: 15px;
+}
+
+/* Button - Simple and clean */
+.tif-payment-form .btn-primary {
     background-color: #007bff;
     border: 1px solid #007bff;
-    padding: 12px 24px;
+    border-radius: 8px;
+    padding: 16px 32px;
+    font-weight: 600;
     font-size: 16px;
-    line-height: 1.5;
-    border-radius: 6px;
-    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+    color: #fff;
+    transition: all 0.3s ease;
+    box-shadow: none;
     text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    width: 100%;
 }
 
-.tif-payment-form .btn:hover {
-    color: #fff;
+.tif-payment-form .btn-primary:hover {
     background-color: #0056b3;
     border-color: #004085;
+    color: #fff;
+    transform: none;
+    box-shadow: none;
 }
 
-.tif-payment-form .btn:focus {
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(38, 143, 255, 0.5);
+.tif-payment-form .btn-primary:focus {
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    outline: none;
 }
 
-/* Thank You Page Styles */
-.tif-thank-you-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 40px 30px;
-    background-color: #f8f9fa;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    text-align: center;
+.tif-payment-form .btn-primary:active {
+    background-color: #004085;
+    border-color: #003366;
+    transform: none;
+    box-shadow: none;
 }
 
-.tif-thank-you-title {
-    color: #28a745;
-    margin-bottom: 30px;
-    font-size: 2.5rem;
-    font-weight: 700;
+/* Nav Scroller - Hidden arrows */
+.js-nav-scroller {
+    position: relative;
+    overflow: visible;
 }
 
-.tif-status-message {
-    padding: 20px;
-    margin-bottom: 30px;
-    border-radius: 8px;
-    text-align: left;
+.hs-nav-scroller-arrow-prev,
+.hs-nav-scroller-arrow-next {
+    display: none !important;
 }
 
-.tif-status-message p {
-    margin: 0;
-    font-size: 1.1rem;
-}
-
-.tif-status-success {
-    background-color: #d4edda;
-    border-left: 5px solid #28a745;
-    color: #155724;
-}
-
-.tif-status-processing {
-    background-color: #fff3cd;
-    border-left: 5px solid #ffc107;
-    color: #856404;
-}
-
-.tif-order-details {
-    background-color: #fff;
-    padding: 25px;
-    border-radius: 8px;
-    margin-bottom: 30px;
-    text-align: left;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.tif-order-details p {
-    margin-bottom: 12px;
-    font-size: 1rem;
-    line-height: 1.6;
-}
-
-.tif-order-details p:last-child {
-    margin-bottom: 0;
-}
-
-.tif-actions {
-    text-align: center;
-}
-
-.tif-actions .btn {
-    display: inline-block;
-    background-color: #007bff;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: background-color 0.3s ease;
-}
-
-.tif-actions .btn:hover {
-    background-color: #0056b3;
-    color: white;
-    text-decoration: none;
-}
-
-/* Payment Failed Page Styles */
-.tif-payment-failed-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 40px 30px;
-    background-color: #f8f9fa;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    text-align: center;
-}
-
-.tif-payment-failed-title {
-    color: #dc3545;
-    margin-bottom: 30px;
-    font-size: 2.5rem;
-    font-weight: 700;
-}
-
-.tif-status-failed {
-    background-color: #f8d7da;
-    border-left: 5px solid #dc3545;
-    color: #721c24;
-}
-
-.tif-error-details {
-    background-color: #fff;
-    padding: 25px;
-    border-radius: 8px;
-    margin-bottom: 30px;
-    text-align: left;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.tif-actions .btn-secondary {
-    background-color: #6c757d;
-    border-color: #6c757d;
-    margin-left: 10px;
-}
-
-.tif-actions .btn-secondary:hover {
-    background-color: #545b62;
-    border-color: #4e555b;
-}
-
-/* Payment Redirect Styles */
-#payment-redirecting {
-    text-align: center;
-    padding: 40px 30px;
-    background-color: #f8f9fa;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-#payment-redirecting h3 {
-    color: #007bff;
+/* Error Message - Simple styling */
+.tif-error-message {
     margin-bottom: 20px;
-    font-size: 1.8rem;
-}
-
-#payment-redirecting p {
-    color: #6c757d;
-    margin-bottom: 30px;
-    font-size: 1.1rem;
-}
-
-#payment_form button {
-    background-color: #28a745;
-    border-color: #28a745;
-    padding: 15px 30px;
-    font-size: 18px;
-    font-weight: 600;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-
-#payment_form button:hover {
-    background-color: #218838;
-    border-color: #1e7e34;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-}
-
-/* Alert Styles */
-.alert {
-    padding: 15px;
-    margin-bottom: 20px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-}
-
-.alert-danger {
-    color: #721c24;
+    padding: 16px 20px;
     background-color: #f8d7da;
-    border-color: #f5c2c7;
+    color: #721c24;
+    border: 1px solid #f5c2c7;
+    border-radius: 8px;
+    border-left: 4px solid #dc3545;
 }
 
-.alert-success {
-    color: #0f5132;
-    background-color: #d1e7dd;
-    border-color: #badbcc;
-}
-
-.alert-warning {
-    color: #664d03;
-    background-color: #fff3cd;
-    border-color: #ffecb5;
-}
-
-/* Responsive Design */
+/* Responsive - Mobile first */
 @media (max-width: 768px) {
-    .tif-payment-form,
-    .tif-thank-you-container,
-    .tif-payment-failed-container,
-    #payment-redirecting {
-        margin: 20px;
-        padding: 20px;
+    .nav-segment .nav-link {
+        padding: 14px 24px;
+        font-size: 15px;
     }
     
-    .tif-thank-you-title,
-    .tif-payment-failed-title {
-        font-size: 2rem;
+    .tab-pane {
+        padding: 1.5rem 0;
     }
     
-    .tif-payment-form .form-check-group {
-        flex-direction: column;
-        gap: 10px;
+    .tif-payment-form .form-control {
+        padding: 14px 16px;
+        font-size: 16px; /* iOS zoom prevention */
     }
     
-    .tif-actions .btn-secondary {
-        margin-left: 0;
-        margin-top: 10px;
+    .tif-payment-form .btn-primary {
+        padding: 14px 24px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 576px) {
+    .nav-segment {
+        margin-bottom: 2rem;
+    }
+    
+    .nav-segment .nav-link {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+}
+
+/* Accessibility improvements */
+.nav-link:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+.form-control:focus {
+    outline: none;
+}
+
+/* Remove any conflicting styles */
+.tif-payment-form,
+.tif-donation-container {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+}
+
+/* Success state for completed fields */
+.form-control.is-valid {
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+/* Loading state */
+.form-control.loading {
+    background-color: #f8f9fa;
+    pointer-events: none;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .nav-segment .nav-link.active {
+        background-color: #000;
+        color: #fff;
+    }
+    
+    .tif-payment-form .form-control {
+        border-width: 2px;
+    }
+    
+    .tif-payment-form .btn-primary {
+        background-color: #000;
+        border-color: #000;
     }
 }
