@@ -688,7 +688,7 @@ class TIF_Admin {
     $new_columns['name'] = __('Ad və soyad', 'kapital-tif-donation');
     $new_columns['phone'] = __('Telefon', 'kapital-tif-donation');
     $new_columns['amount'] = __('Məbləğ', 'kapital-tif-donation');
-    $new_columns['company'] = __('Təşkilat', 'kapital-tif-donation');
+    $new_columns['company'] = __('Qurumun növü', 'kapital-tif-donation');
     $new_columns['voen'] = __('VÖEN', 'kapital-tif-donation'); // YENİ COLUMN
     $new_columns['bank_order_id'] = __('Bank Order ID', 'kapital-tif-donation');
     $new_columns['payment_date'] = __('Ödəniş tarixi', 'kapital-tif-donation');
