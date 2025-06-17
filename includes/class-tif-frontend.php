@@ -166,8 +166,6 @@ class TIF_Frontend {
         $amount = isset($data['mebleg']) ? floatval($data['mebleg']) : 0;
         $company_type = isset($data['fiziki_huquqi']) ? sanitize_text_field($data['fiziki_huquqi']) : 'Fiziki şəxs';
         $company_name = isset($data['teskilat_adi']) ? sanitize_text_field($data['teskilat_adi']) : '';
-        
-        // YENİ: VÖEN validation
         $voen = isset($data['voen']) ? sanitize_text_field($data['voen']) : '';
         
         // Validate name
@@ -194,13 +192,13 @@ class TIF_Frontend {
                             $this->config['payment']['currency']);
         }
         
-        // Validate company name and VÖEN for legal entities
+        // Validate company name and VÖEN YALNIZ hüquqi şəxs üçün
         if ($company_type === 'Hüquqi şəxs') {
             if (empty($company_name) || strlen($company_name) < 2) {
                 $errors[] = __('Hüquqi şəxs üçün qurumun adı məcburidir.', 'kapital-tif-donation');
             }
             
-            // YENİ: VÖEN validation
+            // VÖEN validation YALNIZ hüquqi şəxs üçün
             $clean_voen = preg_replace('/[^\d]/', '', $voen);
             if (empty($clean_voen) || strlen($clean_voen) !== 10) {
                 $errors[] = __('VÖEN 10 rəqəmdən ibarət olmalıdır.', 'kapital-tif-donation');
