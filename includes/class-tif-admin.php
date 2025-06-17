@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin Operations Class - Enhanced Version
+ * Admin Operations Class - FIXED VERSION
  */
 
 // Prevent direct access
@@ -213,7 +213,7 @@ class TIF_Admin {
     }
     
     /**
-     * Export selected donations - COMPLETE VERSION
+     * Export selected donations - FIXED VERSION
      */
     private function export_selected_donations($post_ids) {
         $donations = array();
@@ -263,31 +263,6 @@ class TIF_Admin {
                 get_post_meta($donation->ID, 'company', true),
                 get_post_meta($donation->ID, 'company_name', true),
                 get_post_meta($donation->ID, 'voen', true), // YENİ FIELD
-                get_post_meta($donation->ID, 'payment_date', true),
-                $status,
-                get_post_meta($donation->ID, 'bank_order_id', true)
-            );
-            
-            fputcsv($output, $row);
-        }
-        
-        fclose($output);
-    }
-
-        
-        // Data
-        foreach ($donations as $donation) {
-            $status_terms = wp_get_object_terms($donation->ID, $this->config['general']['taxonomy']);
-            $status = !empty($status_terms) ? $status_terms[0]->name : get_post_meta($donation->ID, 'payment_status', true);
-            
-            $row = array(
-                $donation->ID,
-                get_post_meta($donation->ID, 'transactionId_local', true),
-                get_post_meta($donation->ID, 'name', true),
-                get_post_meta($donation->ID, 'phone', true),
-                get_post_meta($donation->ID, 'amount', true),
-                get_post_meta($donation->ID, 'company', true),
-                get_post_meta($donation->ID, 'company_name', true),
                 get_post_meta($donation->ID, 'payment_date', true),
                 $status,
                 get_post_meta($donation->ID, 'bank_order_id', true)
@@ -399,67 +374,67 @@ class TIF_Admin {
     }
     
     public function save_meta_box_data($post_id) {
-    // Check nonces
-    if (!isset($_POST['tif_donation_details_nonce']) || 
-        !wp_verify_nonce($_POST['tif_donation_details_nonce'], $this->config['security']['nonce_actions']['donation_details'])) {
-        return;
-    }
-    
-    // Check autosave
-    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-        return;
-    }
-    
-    // Check permissions
-    if (!current_user_can('edit_post', $post_id)) {
-        return;
-    }
-    
-    // Clear cache when saving
-    wp_cache_delete('pending_donations_count', $this->cache_group);
-    
-    // Save donation details - VÖEN əlavə edildi
-    $donation_fields = array('name', 'phone', 'amount', 'company', 'company_name', 'voen');
-    foreach ($donation_fields as $field) {
-        if (isset($_POST[$field])) {
-            $value = $field === 'amount' ? floatval($_POST[$field]) : sanitize_text_field($_POST[$field]);
-            update_post_meta($post_id, $field, $value);
+        // Check nonces
+        if (!isset($_POST['tif_donation_details_nonce']) || 
+            !wp_verify_nonce($_POST['tif_donation_details_nonce'], $this->config['security']['nonce_actions']['donation_details'])) {
+            return;
         }
-    }
-    
-    // Save transaction details
-    $transaction_fields = array(
-        'bank_order_id', 'transactionId_local', 'payment_method', 
-        'payment_date', 'approval_code', 'card_number'
-    );
-    
-    foreach ($transaction_fields as $field) {
-        if (isset($_POST[$field])) {
-            update_post_meta($post_id, $field, sanitize_text_field($_POST[$field]));
-        }
-    }
-    
-    // Handle transaction ID as post title
-    if (isset($_POST['transactionId_local'])) {
-        $trans_id = sanitize_text_field($_POST['transactionId_local']);
-        if (!empty($trans_id)) {
-            wp_update_post(array(
-                'ID' => $post_id,
-                'post_title' => $trans_id
-            ));
-        }
-    }
-    
-    // Handle payment status update
-    if (isset($_POST['payment_status'])) {
-        $new_status = sanitize_text_field($_POST['payment_status']);
-        $old_status = get_post_meta($post_id, 'payment_status', true);
         
-        if ($new_status !== $old_status) {
-            update_post_meta($post_id, 'payment_status', $new_status);
-            $this->database->update_order_status($post_id, $new_status);
+        // Check autosave
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
         }
-    }
+        
+        // Check permissions
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+        
+        // Clear cache when saving
+        wp_cache_delete('pending_donations_count', $this->cache_group);
+        
+        // Save donation details - VÖEN əlavə edildi
+        $donation_fields = array('name', 'phone', 'amount', 'company', 'company_name', 'voen');
+        foreach ($donation_fields as $field) {
+            if (isset($_POST[$field])) {
+                $value = $field === 'amount' ? floatval($_POST[$field]) : sanitize_text_field($_POST[$field]);
+                update_post_meta($post_id, $field, $value);
+            }
+        }
+        
+        // Save transaction details
+        $transaction_fields = array(
+            'bank_order_id', 'transactionId_local', 'payment_method', 
+            'payment_date', 'approval_code', 'card_number'
+        );
+        
+        foreach ($transaction_fields as $field) {
+            if (isset($_POST[$field])) {
+                update_post_meta($post_id, $field, sanitize_text_field($_POST[$field]));
+            }
+        }
+        
+        // Handle transaction ID as post title
+        if (isset($_POST['transactionId_local'])) {
+            $trans_id = sanitize_text_field($_POST['transactionId_local']);
+            if (!empty($trans_id)) {
+                wp_update_post(array(
+                    'ID' => $post_id,
+                    'post_title' => $trans_id
+                ));
+            }
+        }
+        
+        // Handle payment status update
+        if (isset($_POST['payment_status'])) {
+            $new_status = sanitize_text_field($_POST['payment_status']);
+            $old_status = get_post_meta($post_id, 'payment_status', true);
+            
+            if ($new_status !== $old_status) {
+                update_post_meta($post_id, 'payment_status', $new_status);
+                $this->database->update_order_status($post_id, $new_status);
+            }
+        }
     }
     
     public function add_dashboard_widget() {
@@ -679,84 +654,84 @@ class TIF_Admin {
     }
     
     public function add_custom_columns($columns) {
-    $new_columns = array();
-    
-    if (isset($columns['title'])) {
-        $new_columns['title'] = 'Transaction ID Local';
-    }
-    
-    $new_columns['name'] = __('Ad və soyad', 'kapital-tif-donation');
-    $new_columns['phone'] = __('Telefon', 'kapital-tif-donation');
-    $new_columns['amount'] = __('Məbləğ', 'kapital-tif-donation');
-    $new_columns['company'] = __('Qurumun növü', 'kapital-tif-donation');
-    $new_columns['voen'] = __('VÖEN', 'kapital-tif-donation'); // YENİ COLUMN
-    $new_columns['bank_order_id'] = __('Bank Order ID', 'kapital-tif-donation');
-    $new_columns['payment_date'] = __('Ödəniş tarixi', 'kapital-tif-donation');
-    
-    foreach ($columns as $key => $value) {
-        if (!isset($new_columns[$key]) && $key != 'title') {
-            $new_columns[$key] = $value;
+        $new_columns = array();
+        
+        if (isset($columns['title'])) {
+            $new_columns['title'] = 'Transaction ID Local';
         }
-    }
-    
+        
+        $new_columns['name'] = __('Ad və soyad', 'kapital-tif-donation');
+        $new_columns['phone'] = __('Telefon', 'kapital-tif-donation');
+        $new_columns['amount'] = __('Məbləğ', 'kapital-tif-donation');
+        $new_columns['company'] = __('Qurumun növü', 'kapital-tif-donation');
+        $new_columns['voen'] = __('VÖEN', 'kapital-tif-donation'); // YENİ COLUMN
+        $new_columns['bank_order_id'] = __('Bank Order ID', 'kapital-tif-donation');
+        $new_columns['payment_date'] = __('Ödəniş tarixi', 'kapital-tif-donation');
+        
+        foreach ($columns as $key => $value) {
+            if (!isset($new_columns[$key]) && $key != 'title') {
+                $new_columns[$key] = $value;
+            }
+        }
+        
         return $new_columns;
     }
-
+    
     public function fill_custom_columns($column, $post_id) {
-    switch ($column) {
-        case 'name':
-            echo esc_html(get_post_meta($post_id, 'name', true));
-            break;
-        case 'phone':
-            $phone = get_post_meta($post_id, 'phone', true);
-            if ($phone) {
-                echo '<a href="tel:' . esc_attr($phone) . '">' . esc_html($phone) . '</a>';
-            }
-            break;
-        case 'amount':
-            $amount = get_post_meta($post_id, 'amount', true);
-            if ($amount) {
-                echo '<strong>' . esc_html($amount) . ' AZN</strong>';
-            }
-            break;
-        case 'company':
-            $company = get_post_meta($post_id, 'company', true);
-            $company_name = get_post_meta($post_id, 'company_name', true);
-            
-            if ($company === 'Hüquqi şəxs' && !empty($company_name)) {
-                echo esc_html($company_name) . '<br><small>(' . esc_html($company) . ')</small>';
-            } else {
-                echo esc_html($company);
-            }
-            break;
-        // YENİ: VÖEN Column
-        case 'voen':
-            $voen = get_post_meta($post_id, 'voen', true);
-            $company = get_post_meta($post_id, 'company', true);
-            
-            if ($company === 'Hüquqi şəxs' && !empty($voen)) {
-                echo '<code>' . esc_html($voen) . '</code>';
-            } else {
-                echo '<span style="color: #999;">—</span>';
-            }
-            break;
-        case 'bank_order_id':
-            $bank_id = get_post_meta($post_id, 'bank_order_id', true);
-            if ($bank_id) {
-                echo '<code>' . esc_html($bank_id) . '</code>';
-            }
-            break;
-        case 'payment_date':
-            $date = get_post_meta($post_id, 'payment_date', true);
-            if ($date) {
-                $formatted_date = date_create($date);
-                if ($formatted_date) {
-                    echo date_format($formatted_date, 'd.m.Y H:i');
-                } else {
-                    echo esc_html($date);
+        switch ($column) {
+            case 'name':
+                echo esc_html(get_post_meta($post_id, 'name', true));
+                break;
+            case 'phone':
+                $phone = get_post_meta($post_id, 'phone', true);
+                if ($phone) {
+                    echo '<a href="tel:' . esc_attr($phone) . '">' . esc_html($phone) . '</a>';
                 }
-            }
-            break;
+                break;
+            case 'amount':
+                $amount = get_post_meta($post_id, 'amount', true);
+                if ($amount) {
+                    echo '<strong>' . esc_html($amount) . ' AZN</strong>';
+                }
+                break;
+            case 'company':
+                $company = get_post_meta($post_id, 'company', true);
+                $company_name = get_post_meta($post_id, 'company_name', true);
+                
+                if ($company === 'Hüquqi şəxs' && !empty($company_name)) {
+                    echo esc_html($company_name) . '<br><small>(' . esc_html($company) . ')</small>';
+                } else {
+                    echo esc_html($company);
+                }
+                break;
+            // YENİ: VÖEN Column
+            case 'voen':
+                $voen = get_post_meta($post_id, 'voen', true);
+                $company = get_post_meta($post_id, 'company', true);
+                
+                if ($company === 'Hüquqi şəxs' && !empty($voen)) {
+                    echo '<code>' . esc_html($voen) . '</code>';
+                } else {
+                    echo '<span style="color: #999;">—</span>';
+                }
+                break;
+            case 'bank_order_id':
+                $bank_id = get_post_meta($post_id, 'bank_order_id', true);
+                if ($bank_id) {
+                    echo '<code>' . esc_html($bank_id) . '</code>';
+                }
+                break;
+            case 'payment_date':
+                $date = get_post_meta($post_id, 'payment_date', true);
+                if ($date) {
+                    $formatted_date = date_create($date);
+                    if ($formatted_date) {
+                        echo date_format($formatted_date, 'd.m.Y H:i');
+                    } else {
+                        echo esc_html($date);
+                    }
+                }
+                break;
         }
     }
     
@@ -768,7 +743,7 @@ class TIF_Admin {
         $columns['voen'] = 'voen'; // YENİ SORTABLE COLUMN
         return $columns;
     }
-
+    
     public function orderby_columns($query) {
         if (!is_admin() || !$query->is_main_query() || 
             $query->get('post_type') !== $this->config['general']['post_type']) {
