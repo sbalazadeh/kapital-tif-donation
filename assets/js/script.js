@@ -1,5 +1,5 @@
 /**
- * Kapital TIF Donation Plugin - Frontend JavaScript
+ * Kapital TIF Donation Plugin - Frontend JavaScript - Bootstrap Tab Version
  */
 
 (function($) {
@@ -13,7 +13,7 @@
     });
     
     /**
-     * Initialize payment form functionality
+     * Initialize payment form functionality with Bootstrap tabs
      */
     function initPaymentForm() {
         var $form = $('.tif-payment-form');
@@ -22,75 +22,140 @@
             return;
         }
         
-        // Company type toggle
-        var $fizikiRadio = $('#fiziki');
-        var $huquqiRadio = $('#huquqi');
-        var $teskilatField = $('.teskilat-adi-field');
-        var $teskilatInput = $('#teskilatAdiLabel');
+        // Tab switching functionality
+        var $fizikiTab = $('#fiziki-tab-link');
+        var $huquqiTab = $('#huquqi-tab-link');
+        var $hiddenInput = $('#hidden_fiziki_huquqi');
         
-        function toggleCompanyField() {
-            if ($huquqiRadio.is(':checked')) {
-                $teskilatField.show();
-                $teskilatInput.attr('required', 'required');
-                $teskilatField.addClass('required');
-            } else {
-                $teskilatField.hide();
-                $teskilatInput.removeAttr('required');
-                $teskilatField.removeClass('required');
-            }
-        }
-        
-        $fizikiRadio.on('change', toggleCompanyField);
-        $huquqiRadio.on('change', toggleCompanyField);
-        
-        // Initialize on page load
-        toggleCompanyField();
-        
-        // Phone number formatting
-        var $phoneInput = $('#telefon_nomresi');
-        $phoneInput.on('input', function() {
-            var value = $(this).val().replace(/\D/g, '');
-            
-            // Format phone number
-            if (value.length > 0) {
-                if (value.length <= 3) {
-                    value = value;
-                } else if (value.length <= 5) {
-                    value = value.substring(0, 3) + value.substring(3);
-                } else if (value.length <= 7) {
-                    value = value.substring(0, 3) + value.substring(3, 5) + value.substring(5);
-                } else {
-                    value = value.substring(0, 3) + value.substring(3, 5) + value.substring(5, 7) + value.substring(7, 9);
-                }
-                
-                // Limit to 9 digits
-                if (value.length > 9) {
-                    value = value.substring(0, 9);
-                }
-            }
-            
-            $(this).val(value);
+        // Bootstrap tab event handlers
+        $fizikiTab.on('shown.bs.tab', function() {
+            $hiddenInput.val('Fiziki şəxs');
+            updateRequiredFields('fiziki');
+            clearInactiveTabFields('huquqi');
         });
         
-        // Amount input validation
-        var $amountInput = $('#mebleg');
-        $amountInput.on('input', function() {
-            var value = parseFloat($(this).val());
-            var min = parseFloat($(this).attr('min'));
-            var max = parseFloat($(this).attr('max'));
+        $huquqiTab.on('shown.bs.tab', function() {
+            $hiddenInput.val('Hüquqi şəxs');
+            updateRequiredFields('huquqi');
+            clearInactiveTabFields('fiziki');
+        });
+        
+        // Phone number formatting for both tabs
+        formatPhoneNumber($('#fiziki_phone'));
+        formatPhoneNumber($('#huquqi_phone'));
+        
+        // Amount validation for both tabs
+        setupAmountValidation($('#fiziki_amount'));
+        setupAmountValidation($('#huquqi_amount'));
+        
+        // Initialize with fiziki tab active
+        updateRequiredFields('fiziki');
+    }
+    
+    /**
+     * Update required fields based on active tab
+     */
+    function updateRequiredFields(activeTab) {
+        if (activeTab === 'fiziki') {
+            // Fiziki şəxs fields
+            setFieldRequired('#fiziki_name', true);
+            setFieldRequired('#fiziki_phone', true);
+            setFieldRequired('#fiziki_amount', true);
             
-            if (value < min) {
-                $(this).addClass('error');
-            } else if (value > max) {
-                $(this).addClass('error');
+            // Clear hüquqi şəxs requirements
+            setFieldRequired('#huquqi_company_name', false);
+            setFieldRequired('#huquqi_name', false);
+            setFieldRequired('#huquqi_phone', false);
+            setFieldRequired('#huquqi_amount', false);
+        } else {
+            // Hüquqi şəxs fields
+            setFieldRequired('#huquqi_company_name', true);
+            setFieldRequired('#huquqi_name', true);
+            setFieldRequired('#huquqi_phone', true);
+            setFieldRequired('#huquqi_amount', true);
+            
+            // Clear fiziki şəxs requirements
+            setFieldRequired('#fiziki_name', false);
+            setFieldRequired('#fiziki_phone', false);
+            setFieldRequired('#fiziki_amount', false);
+        }
+    }
+    
+    /**
+     * Set field as required or not
+     */
+    function setFieldRequired(selector, required) {
+        var $field = $(selector);
+        if ($field.length > 0) {
+            if (required) {
+                $field.attr('required', 'required');
+                $field.closest('.form-group').addClass('required');
             } else {
-                $(this).removeClass('error');
+                $field.removeAttr('required');
+                $field.closest('.form-group').removeClass('required');
+            }
+        }
+    }
+    
+    /**
+     * Clear fields in inactive tab
+     */
+    function clearInactiveTabFields(inactiveTab) {
+        var fieldsToFlear = [];
+        
+        if (inactiveTab === 'fiziki') {
+            fieldsToFlear = ['#fiziki_name', '#fiziki_phone', '#fiziki_amount'];
+        } else {
+            fieldsToFlear = ['#huquqi_company_name', '#huquqi_name', '#huquqi_phone', '#huquqi_amount'];
+        }
+        
+        fieldsToFlear.forEach(function(selector) {
+            var $field = $(selector);
+            if ($field.length > 0) {
+                $field.val('').removeClass('error is-invalid');
             }
         });
     }
     
     /**
-     * Initialize form validation
+     * Format phone number input
+     */
+    function formatPhoneNumber($input) {
+        if ($input.length === 0) return;
+        
+        $input.on('input', function() {
+            var value = $(this).val().replace(/\D/g, '');
+            
+            // Limit to 9 digits
+            if (value.length > 9) {
+                value = value.substring(0, 9);
+            }
+            
+            $(this).val(value);
+        });
+    }
+    
+    /**
+     * Setup amount validation
+     */
+    function setupAmountValidation($input) {
+        if ($input.length === 0) return;
+        
+        $input.on('input', function() {
+            var value = parseFloat($(this).val());
+            var min = parseFloat($(this).attr('min'));
+            var max = parseFloat($(this).attr('max'));
+            
+            if (isNaN(value) || value < min || value > max) {
+                $(this).addClass('is-invalid error');
+            } else {
+                $(this).removeClass('is-invalid error');
+            }
+        });
+    }
+    
+    /**
+     * Enhanced form validation for tab structure
      */
     function initFormValidation() {
         var $form = $('.tif-payment-form');
@@ -101,37 +166,49 @@
         
         $form.on('submit', function(e) {
             var isValid = true;
-            var $requiredFields = $form.find('[required]');
+            var activeTab = $('#hidden_fiziki_huquqi').val();
+            var $activeTabPane, $requiredFields;
             
             // Clear previous errors
-            $requiredFields.removeClass('error');
             $('.tif-error-message').remove();
+            $('.is-invalid, .error').removeClass('is-invalid error');
             
-            // Validate required fields
+            // Get active tab fields
+            if (activeTab === 'Fiziki şəxs') {
+                $activeTabPane = $('#fiziki-tab');
+                $requiredFields = $activeTabPane.find('[required]');
+            } else {
+                $activeTabPane = $('#huquqi-tab');
+                $requiredFields = $activeTabPane.find('[required]');
+            }
+            
+            // Validate required fields in active tab only
             $requiredFields.each(function() {
                 var $field = $(this);
                 var value = $field.val().trim();
                 
                 if (value === '') {
-                    $field.addClass('error');
+                    $field.addClass('is-invalid error');
                     isValid = false;
                 }
             });
             
-            // Validate phone number
-            var phoneValue = $('#telefon_nomresi').val().replace(/\D/g, '');
+            // Validate phone number in active tab
+            var $phoneField = activeTab === 'Fiziki şəxs' ? $('#fiziki_phone') : $('#huquqi_phone');
+            var phoneValue = $phoneField.val().replace(/\D/g, '');
             if (phoneValue.length < 9) {
-                $('#telefon_nomresi').addClass('error');
+                $phoneField.addClass('is-invalid error');
                 isValid = false;
             }
             
-            // Validate amount
-            var amount = parseFloat($('#mebleg').val());
-            var min = parseFloat($('#mebleg').attr('min'));
-            var max = parseFloat($('#mebleg').attr('max'));
+            // Validate amount in active tab
+            var $amountField = activeTab === 'Fiziki şəxs' ? $('#fiziki_amount') : $('#huquqi_amount');
+            var amount = parseFloat($amountField.val());
+            var min = parseFloat($amountField.attr('min'));
+            var max = parseFloat($amountField.attr('max'));
             
             if (isNaN(amount) || amount < min || amount > max) {
-                $('#mebleg').addClass('error');
+                $amountField.addClass('is-invalid error');
                 isValid = false;
             }
             
@@ -139,24 +216,33 @@
             if (!isValid) {
                 e.preventDefault();
                 
-                var errorMessage = $('<div class="tif-error-message alert alert-danger"></div>')
+                var errorMessage = $('<div class="alert alert-danger tif-error-message"></div>')
                     .text('Zəhmət olmasa bütün sahələri düzgün doldurun.');
                     
                 $form.prepend(errorMessage);
                 
                 // Scroll to first error
-                var $firstError = $form.find('.error').first();
+                var $firstError = $form.find('.is-invalid, .error').first();
                 if ($firstError.length > 0) {
                     $('html, body').animate({
                         scrollTop: $firstError.offset().top - 100
                     }, 300);
+                }
+                
+                // Show error tab if not active
+                if (!$activeTabPane.hasClass('show active')) {
+                    if (activeTab === 'Fiziki şəxs') {
+                        $('#fiziki-tab-link').tab('show');
+                    } else {
+                        $('#huquqi-tab-link').tab('show');
+                    }
                 }
             }
         });
     }
     
     /**
-     * Handle payment redirect
+     * Handle payment redirect (unchanged)
      */
     function handlePaymentRedirect() {
         var $redirectDiv = $('#payment-redirecting');
@@ -209,7 +295,7 @@
     }
     
     /**
-     * Utility function to show notification
+     * Utility function to show notification (unchanged)
      */
     function showNotification(message, type) {
         type = type || 'info';
@@ -260,14 +346,21 @@
     }
     
     /**
-     * Add custom CSS for error states
+     * Add custom CSS for error states and Bootstrap integration
      */
     if ($('.tif-error-css').length === 0) {
         $('head').append(`
             <style class="tif-error-css">
+            .tif-payment-form .form-control.is-invalid,
             .tif-payment-form .form-control.error {
                 border-color: #dc3545;
                 box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+            }
+            
+            .tif-payment-form .form-group.required .form-label:after {
+                content: " *";
+                color: #dc3545;
+                font-weight: bold;
             }
             
             .tif-error-message {
@@ -279,6 +372,23 @@
                 0%, 100% { transform: translateX(0); }
                 25% { transform: translateX(-5px); }
                 75% { transform: translateX(5px); }
+            }
+            
+            /* Tab styling improvements */
+            .nav-segment .nav-link {
+                border-radius: 50px;
+                padding: 12px 24px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+            }
+            
+            .nav-segment .nav-link.active {
+                background-color: var(--bs-primary);
+                border-color: var(--bs-primary);
+            }
+            
+            .tab-content {
+                padding-top: 2rem;
             }
             </style>
         `);
