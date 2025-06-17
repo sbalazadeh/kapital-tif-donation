@@ -1,6 +1,6 @@
 <?php
 /**
- * Database Operations Class - Enhanced Version
+ * Database Operations Class - VÖEN Field əlavə edildi
  */
 
 // Prevent direct access
@@ -97,13 +97,16 @@ class TIF_Database {
     }
     
     /**
-     * Create donation order
+     * Create donation order - VÖEN field əlavə edildi
      */
     public function create_order($amount, $data) {
         $name = isset($data['ad_soyad']) ? sanitize_text_field($data['ad_soyad']) : '';
         $phone = isset($data['telefon_nomresi']) ? sanitize_text_field($data['telefon_nomresi']) : '';
         $company = isset($data['fiziki_huquqi']) ? sanitize_text_field($data['fiziki_huquqi']) : 'Fiziki şəxs';
         $company_name = isset($data['teskilat_adi']) ? sanitize_text_field($data['teskilat_adi']) : '';
+        
+        // YENİ: VÖEN field əlavə edildi
+        $voen = isset($data['voen']) ? sanitize_text_field($data['voen']) : '';
         
         // Generate unique transaction ID
         $transaction_id = 'TIF-' . date('Ymd') . '-' . uniqid();
@@ -122,13 +125,14 @@ class TIF_Database {
             return 0;
         }
         
-        // Set metadata
+        // Set metadata - VÖEN əlavə edildi
         $meta_data = array(
             'name' => $name,
             'phone' => $phone,
             'amount' => floatval($amount),
             'company' => $company,
             'company_name' => $company_name,
+            'voen' => $voen, // YENİ FIELD
             'payment_date' => current_time('d-m-Y H:i:s'),
             'transactionId_local' => $transaction_id,
             'payment_status' => 'Pending',
@@ -307,7 +311,7 @@ class TIF_Database {
     }
     
     /**
-     * Get orders for export
+     * Get orders for export - VÖEN field əlavə edildi
      */
     public function get_orders_for_export($date_from = '', $date_to = '') {
         $args = array(
