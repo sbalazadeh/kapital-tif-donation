@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin Donation Details Template
+ * Admin Donation Details Template - VÖEN field əlavə edildi
  */
 
 // Prevent direct access
@@ -43,22 +43,45 @@ if (!defined('ABSPATH')) {
         </td>
     </tr>
     <tr id="company_name_row" <?php echo ($company != 'Hüquqi şəxs') ? 'style="display:none;"' : ''; ?>>
-        <th><label for="company_name"><?php _e('Təşkilatın adı', 'kapital-tif-donation'); ?></label></th>
+        <th><label for="company_name"><?php _e('Qurumun adı', 'kapital-tif-donation'); ?></label></th>
         <td>
             <input type="text" id="company_name" name="company_name" 
                    value="<?php echo esc_attr($company_name); ?>" class="regular-text">
         </td>
     </tr>
+    <!-- YENİ: VÖEN Field -->
+    <tr id="voen_row" <?php echo ($company != 'Hüquqi şəxs') ? 'style="display:none;"' : ''; ?>>
+        <th><label for="voen"><?php _e('Qurumun VÖENİ', 'kapital-tif-donation'); ?></label></th>
+        <td>
+            <input type="text" id="voen" name="voen" 
+                   value="<?php echo esc_attr($voen); ?>" class="regular-text" 
+                   maxlength="10" pattern="[0-9]{10}">
+            <p class="description"><?php _e('10 rəqəmdən ibarət VÖEN daxil edin', 'kapital-tif-donation'); ?></p>
+        </td>
+    </tr>
+    <!-- End VÖEN Field -->
 </table>
 
 <script>
 jQuery(document).ready(function($) {
     $('#company').on('change', function() {
         if ($(this).val() === 'Hüquqi şəxs') {
-            $('#company_name_row').show();
+            $('#company_name_row, #voen_row').show();
         } else {
-            $('#company_name_row').hide();
+            $('#company_name_row, #voen_row').hide();
         }
+    });
+    
+    // VÖEN formatting (10 digits only)
+    $('#voen').on('input', function() {
+        var value = $(this).val().replace(/\D/g, '');
+        
+        // Limit to 10 digits
+        if (value.length > 10) {
+            value = value.substring(0, 10);
+        }
+        
+        $(this).val(value);
     });
 });
 </script>
