@@ -371,67 +371,67 @@ class TIF_Admin {
     }
     
     public function save_meta_box_data($post_id) {
-        // Check nonces
-        if (!isset($_POST['tif_donation_details_nonce']) || 
-            !wp_verify_nonce($_POST['tif_donation_details_nonce'], $this->config['security']['nonce_actions']['donation_details'])) {
-            return;
+    // Check nonces
+    if (!isset($_POST['tif_donation_details_nonce']) || 
+        !wp_verify_nonce($_POST['tif_donation_details_nonce'], $this->config['security']['nonce_actions']['donation_details'])) {
+        return;
+    }
+    
+    // Check autosave
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return;
+    }
+    
+    // Check permissions
+    if (!current_user_can('edit_post', $post_id)) {
+        return;
+    }
+    
+    // Clear cache when saving
+    wp_cache_delete('pending_donations_count', $this->cache_group);
+    
+    // Save donation details - VÖEN əlavə edildi
+    $donation_fields = array('name', 'phone', 'amount', 'company', 'company_name', 'voen');
+    foreach ($donation_fields as $field) {
+        if (isset($_POST[$field])) {
+            $value = $field === 'amount' ? floatval($_POST[$field]) : sanitize_text_field($_POST[$field]);
+            update_post_meta($post_id, $field, $value);
         }
-        
-        // Check autosave
-        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-            return;
+    }
+    
+    // Save transaction details
+    $transaction_fields = array(
+        'bank_order_id', 'transactionId_local', 'payment_method', 
+        'payment_date', 'approval_code', 'card_number'
+    );
+    
+    foreach ($transaction_fields as $field) {
+        if (isset($_POST[$field])) {
+            update_post_meta($post_id, $field, sanitize_text_field($_POST[$field]));
         }
-        
-        // Check permissions
-        if (!current_user_can('edit_post', $post_id)) {
-            return;
+    }
+    
+    // Handle transaction ID as post title
+    if (isset($_POST['transactionId_local'])) {
+        $trans_id = sanitize_text_field($_POST['transactionId_local']);
+        if (!empty($trans_id)) {
+            wp_update_post(array(
+                'ID' => $post_id,
+                'post_title' => $trans_id
+            ));
         }
+    }
+    
+    // Handle payment status update
+    if (isset($_POST['payment_status'])) {
+        $new_status = sanitize_text_field($_POST['payment_status']);
+        $old_status = get_post_meta($post_id, 'payment_status', true);
         
-        // Clear cache when saving
-        wp_cache_delete('pending_donations_count', $this->cache_group);
-        
-        // Save donation details
-        $donation_fields = array('name', 'phone', 'amount', 'company', 'company_name');
-        foreach ($donation_fields as $field) {
-            if (isset($_POST[$field])) {
-                $value = $field === 'amount' ? floatval($_POST[$field]) : sanitize_text_field($_POST[$field]);
-                update_post_meta($post_id, $field, $value);
-            }
+        if ($new_status !== $old_status) {
+            update_post_meta($post_id, 'payment_status', $new_status);
+            $this->database->update_order_status($post_id, $new_status);
         }
-        
-        // Save transaction details
-        $transaction_fields = array(
-            'bank_order_id', 'transactionId_local', 'payment_method', 
-            'payment_date', 'approval_code', 'card_number'
-        );
-        
-        foreach ($transaction_fields as $field) {
-            if (isset($_POST[$field])) {
-                update_post_meta($post_id, $field, sanitize_text_field($_POST[$field]));
-            }
-        }
-        
-        // Handle transaction ID as post title
-        if (isset($_POST['transactionId_local'])) {
-            $trans_id = sanitize_text_field($_POST['transactionId_local']);
-            if (!empty($trans_id)) {
-                wp_update_post(array(
-                    'ID' => $post_id,
-                    'post_title' => $trans_id
-                ));
-            }
-        }
-        
-        // Handle payment status update
-        if (isset($_POST['payment_status'])) {
-            $new_status = sanitize_text_field($_POST['payment_status']);
-            $old_status = get_post_meta($post_id, 'payment_status', true);
-            
-            if ($new_status !== $old_status) {
-                update_post_meta($post_id, 'payment_status', $new_status);
-                $this->database->update_order_status($post_id, $new_status);
-            }
-        }
+    }
     }
     
     public function add_dashboard_widget() {
