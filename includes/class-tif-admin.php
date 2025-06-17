@@ -651,72 +651,84 @@ class TIF_Admin {
     }
     
     public function add_custom_columns($columns) {
-        $new_columns = array();
-        
-        if (isset($columns['title'])) {
-            $new_columns['title'] = 'Transaction ID Local';
-        }
-        
-        $new_columns['name'] = __('Ad və soyad', 'kapital-tif-donation');
-        $new_columns['phone'] = __('Telefon', 'kapital-tif-donation');
-        $new_columns['amount'] = __('Məbləğ', 'kapital-tif-donation');
-        $new_columns['company'] = __('Təşkilat', 'kapital-tif-donation');
-        $new_columns['bank_order_id'] = __('Bank Order ID', 'kapital-tif-donation');
-        $new_columns['payment_date'] = __('Ödəniş tarixi', 'kapital-tif-donation');
-        
-        foreach ($columns as $key => $value) {
-            if (!isset($new_columns[$key]) && $key != 'title') {
-                $new_columns[$key] = $value;
-            }
-        }
-        
-        return $new_columns;
+    $new_columns = array();
+    
+    if (isset($columns['title'])) {
+        $new_columns['title'] = 'Transaction ID Local';
     }
     
+    $new_columns['name'] = __('Ad və soyad', 'kapital-tif-donation');
+    $new_columns['phone'] = __('Telefon', 'kapital-tif-donation');
+    $new_columns['amount'] = __('Məbləğ', 'kapital-tif-donation');
+    $new_columns['company'] = __('Təşkilat', 'kapital-tif-donation');
+    $new_columns['voen'] = __('VÖEN', 'kapital-tif-donation'); // YENİ COLUMN
+    $new_columns['bank_order_id'] = __('Bank Order ID', 'kapital-tif-donation');
+    $new_columns['payment_date'] = __('Ödəniş tarixi', 'kapital-tif-donation');
+    
+    foreach ($columns as $key => $value) {
+        if (!isset($new_columns[$key]) && $key != 'title') {
+            $new_columns[$key] = $value;
+        }
+    }
+    
+        return $new_columns;
+    }
+
     public function fill_custom_columns($column, $post_id) {
-        switch ($column) {
-            case 'name':
-                echo esc_html(get_post_meta($post_id, 'name', true));
-                break;
-            case 'phone':
-                $phone = get_post_meta($post_id, 'phone', true);
-                if ($phone) {
-                    echo '<a href="tel:' . esc_attr($phone) . '">' . esc_html($phone) . '</a>';
-                }
-                break;
-            case 'amount':
-                $amount = get_post_meta($post_id, 'amount', true);
-                if ($amount) {
-                    echo '<strong>' . esc_html($amount) . ' AZN</strong>';
-                }
-                break;
-            case 'company':
-                $company = get_post_meta($post_id, 'company', true);
-                $company_name = get_post_meta($post_id, 'company_name', true);
-                
-                if ($company === 'Hüquqi şəxs' && !empty($company_name)) {
-                    echo esc_html($company_name) . '<br><small>(' . esc_html($company) . ')</small>';
+    switch ($column) {
+        case 'name':
+            echo esc_html(get_post_meta($post_id, 'name', true));
+            break;
+        case 'phone':
+            $phone = get_post_meta($post_id, 'phone', true);
+            if ($phone) {
+                echo '<a href="tel:' . esc_attr($phone) . '">' . esc_html($phone) . '</a>';
+            }
+            break;
+        case 'amount':
+            $amount = get_post_meta($post_id, 'amount', true);
+            if ($amount) {
+                echo '<strong>' . esc_html($amount) . ' AZN</strong>';
+            }
+            break;
+        case 'company':
+            $company = get_post_meta($post_id, 'company', true);
+            $company_name = get_post_meta($post_id, 'company_name', true);
+            
+            if ($company === 'Hüquqi şəxs' && !empty($company_name)) {
+                echo esc_html($company_name) . '<br><small>(' . esc_html($company) . ')</small>';
+            } else {
+                echo esc_html($company);
+            }
+            break;
+        // YENİ: VÖEN Column
+        case 'voen':
+            $voen = get_post_meta($post_id, 'voen', true);
+            $company = get_post_meta($post_id, 'company', true);
+            
+            if ($company === 'Hüquqi şəxs' && !empty($voen)) {
+                echo '<code>' . esc_html($voen) . '</code>';
+            } else {
+                echo '<span style="color: #999;">—</span>';
+            }
+            break;
+        case 'bank_order_id':
+            $bank_id = get_post_meta($post_id, 'bank_order_id', true);
+            if ($bank_id) {
+                echo '<code>' . esc_html($bank_id) . '</code>';
+            }
+            break;
+        case 'payment_date':
+            $date = get_post_meta($post_id, 'payment_date', true);
+            if ($date) {
+                $formatted_date = date_create($date);
+                if ($formatted_date) {
+                    echo date_format($formatted_date, 'd.m.Y H:i');
                 } else {
-                    echo esc_html($company);
+                    echo esc_html($date);
                 }
-                break;
-            case 'bank_order_id':
-                $bank_id = get_post_meta($post_id, 'bank_order_id', true);
-                if ($bank_id) {
-                    echo '<code>' . esc_html($bank_id) . '</code>';
-                }
-                break;
-            case 'payment_date':
-                $date = get_post_meta($post_id, 'payment_date', true);
-                if ($date) {
-                    $formatted_date = date_create($date);
-                    if ($formatted_date) {
-                        echo date_format($formatted_date, 'd.m.Y H:i');
-                    } else {
-                        echo esc_html($date);
-                    }
-                }
-                break;
+            }
+            break;
         }
     }
     
