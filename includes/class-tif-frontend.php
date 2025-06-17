@@ -156,7 +156,7 @@ class TIF_Frontend {
     }
     
     /**
-     * Enhanced form validation with detailed error messages
+     * Enhanced form validation with VÖEN validation
      */
     private function validate_form_data($data) {
         $errors = array();
@@ -166,6 +166,9 @@ class TIF_Frontend {
         $amount = isset($data['mebleg']) ? floatval($data['mebleg']) : 0;
         $company_type = isset($data['fiziki_huquqi']) ? sanitize_text_field($data['fiziki_huquqi']) : 'Fiziki şəxs';
         $company_name = isset($data['teskilat_adi']) ? sanitize_text_field($data['teskilat_adi']) : '';
+        
+        // YENİ: VÖEN validation
+        $voen = isset($data['voen']) ? sanitize_text_field($data['voen']) : '';
         
         // Validate name
         if (empty($name) || strlen($name) < 2) {
@@ -181,19 +184,27 @@ class TIF_Frontend {
         // Validate amount
         if ($amount < $this->config['payment']['min_amount']) {
             $errors[] = sprintf(__('Minimum məbləğ %s %s olmalıdır.', 'kapital-tif-donation'), 
-                               $this->config['payment']['min_amount'], 
-                               $this->config['payment']['currency']);
+                            $this->config['payment']['min_amount'], 
+                            $this->config['payment']['currency']);
         }
         
         if ($amount > $this->config['payment']['max_amount']) {
             $errors[] = sprintf(__('Maximum məbləğ %s %s olmalıdır.', 'kapital-tif-donation'), 
-                               $this->config['payment']['max_amount'], 
-                               $this->config['payment']['currency']);
+                            $this->config['payment']['max_amount'], 
+                            $this->config['payment']['currency']);
         }
         
-        // Validate company name for legal entities
-        if ($company_type === 'Hüquqi şəxs' && (empty($company_name) || strlen($company_name) < 2)) {
-            $errors[] = __('Hüquqi şəxs üçün təşkilat adı məcburidir.', 'kapital-tif-donation');
+        // Validate company name and VÖEN for legal entities
+        if ($company_type === 'Hüquqi şəxs') {
+            if (empty($company_name) || strlen($company_name) < 2) {
+                $errors[] = __('Hüquqi şəxs üçün qurumun adı məcburidir.', 'kapital-tif-donation');
+            }
+            
+            // YENİ: VÖEN validation
+            $clean_voen = preg_replace('/[^\d]/', '', $voen);
+            if (empty($clean_voen) || strlen($clean_voen) !== 10) {
+                $errors[] = __('VÖEN 10 rəqəmdən ibarət olmalıdır.', 'kapital-tif-donation');
+            }
         }
         
         // Store errors in transient instead of session for better performance
