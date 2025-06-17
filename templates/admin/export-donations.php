@@ -83,7 +83,6 @@ if (!defined('ABSPATH')) {
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Ad və soyad', 'kapital-tif-donation'); ?></th>
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Telefon', 'kapital-tif-donation'); ?></th>
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Məbləğ', 'kapital-tif-donation'); ?></th>
-                            <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Təşkilat', 'kapital-tif-donation'); ?></th>
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Qurumun adı', 'kapital-tif-donation'); ?></th>
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('VÖEN', 'kapital-tif-donation'); ?></th> <!-- YENİ COLUMN -->
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Ödəniş tarixi', 'kapital-tif-donation'); ?></th>
@@ -103,7 +102,6 @@ if (!defined('ABSPATH')) {
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'name', true)); ?></td>
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'phone', true)); ?></td>
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'amount', true)); ?></td>
-                            <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'company', true)); ?></td>
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'company_name', true)); ?></td>
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'voen', true)); ?></td> <!-- YENİ DATA -->
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'payment_date', true)); ?></td>
