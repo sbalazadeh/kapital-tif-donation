@@ -1,6 +1,6 @@
 <?php
 /**
- * Frontend Operations Class - İanə Təsnifatı Validation əlavə edildi
+ * Frontend Operations Class - SYNTAX ERROR FIXED
  */
 
 // Prevent direct access
@@ -156,7 +156,7 @@ class TIF_Frontend {
     }
     
     /**
-     * Enhanced form validation with İanə Təsnifatı validation - YENİ ƏLAVƏ EDİLDİ
+     * Enhanced form validation with İanə Təsnifatı validation
      */
     private function validate_form_data($data) {
         $errors = array();
@@ -168,7 +168,7 @@ class TIF_Frontend {
         $company_name = isset($data['teskilat_adi']) ? sanitize_text_field($data['teskilat_adi']) : '';
         $voen = isset($data['voen']) ? sanitize_text_field($data['voen']) : '';
         
-        // YENİ: İanə Təsnifatı validation
+        // İanə Təsnifatı validation
         $iane_tesnifati = isset($data['iane_tesnifati']) ? sanitize_text_field($data['iane_tesnifati']) : '';
         
         // Validate name
@@ -195,7 +195,7 @@ class TIF_Frontend {
                             $this->config['payment']['currency']);
         }
         
-        // YENİ: İanə Təsnifatı validation - HƏM FİZİKİ HƏM HÜQUQİ ŞƏXS ÜÇÜN MƏCBURİDİR
+        // İanə Təsnifatı validation - HƏM FİZİKİ HƏM HÜQUQİ ŞƏXS ÜÇÜN MƏCBURİDİR
         if (empty($iane_tesnifati)) {
             $errors[] = __('İanə təsnifatı seçilməlidir.', 'kapital-tif-donation');
         } else {
@@ -517,8 +517,9 @@ class TIF_Frontend {
         return '';
     }
     
+    // FIXED: Missing closing bracket in intval() function
     private function render_payment_failed_page() {
-        $order_id = isset($_GET['order_id']) ? intval($_GET['order_id') : 0;
+        $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0; // FIXED SYNTAX ERROR
         $status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : 'unknown';
         $error = isset($_GET['error']) ? sanitize_text_field($_GET['error']) : '';
         $token = isset($_GET['token']) ? sanitize_text_field($_GET['token']) : '';
