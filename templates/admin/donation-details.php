@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin Donation Details Template - VÖEN field əlavə edildi
+ * Admin Donation Details Template - İanə Təsnifatı field əlavə edildi
  */
 
 // Prevent direct access
@@ -49,7 +49,7 @@ if (!defined('ABSPATH')) {
                    value="<?php echo esc_attr($company_name); ?>" class="regular-text">
         </td>
     </tr>
-    <!-- YENİ: VÖEN Field -->
+    <!-- VÖEN Field -->
     <tr id="voen_row" <?php echo ($company != 'Hüquqi şəxs') ? 'style="display:none;"' : ''; ?>>
         <th><label for="voen"><?php _e('Qurumun VÖENİ', 'kapital-tif-donation'); ?></label></th>
         <td>
@@ -59,7 +59,26 @@ if (!defined('ABSPATH')) {
             <p class="description"><?php _e('10 rəqəmdən ibarət VÖEN daxil edin', 'kapital-tif-donation'); ?></p>
         </td>
     </tr>
-    <!-- End VÖEN Field -->
+    <!-- YENİ: İanə Təsnifatı Field -->
+    <tr>
+        <th><label for="iane_tesnifati"><?php _e('İanə Təsnifatı', 'kapital-tif-donation'); ?></label></th>
+        <td>
+            <select id="iane_tesnifati" name="iane_tesnifati" class="regular-text">
+                <option value=""><?php _e('-- Seçin --', 'kapital-tif-donation'); ?></option>
+                <option value="tifiane" <?php selected($iane_tesnifati, 'tifiane'); ?>>
+                    <?php _e('Təhsilin İnkişafı Fonduna', 'kapital-tif-donation'); ?>
+                </option>
+                <option value="qtdl" <?php selected($iane_tesnifati, 'qtdl'); ?>>
+                    <?php _e('"Qızların təhsilinə dəstək" layihəsinə', 'kapital-tif-donation'); ?>
+                </option>
+                <option value="qtp" <?php selected($iane_tesnifati, 'qtp'); ?>>
+                    <?php _e('Qarabağ Təqaüd Proqramına', 'kapital-tif-donation'); ?>
+                </option>
+            </select>
+            <p class="description"><?php _e('İanənin hansı təsnifata aid olduğunu seçin', 'kapital-tif-donation'); ?></p>
+        </td>
+    </tr>
+    <!-- End İanə Təsnifatı Field -->
 </table>
 
 <script>
