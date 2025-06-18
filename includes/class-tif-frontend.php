@@ -1,6 +1,6 @@
 <?php
 /**
- * Frontend Operations Class - Optimized Version
+ * Frontend Operations Class - İanə Təsnifatı Validation əlavə edildi
  */
 
 // Prevent direct access
@@ -156,7 +156,7 @@ class TIF_Frontend {
     }
     
     /**
-     * Enhanced form validation with VÖEN validation
+     * Enhanced form validation with İanə Təsnifatı validation - YENİ ƏLAVƏ EDİLDİ
      */
     private function validate_form_data($data) {
         $errors = array();
@@ -167,6 +167,9 @@ class TIF_Frontend {
         $company_type = isset($data['fiziki_huquqi']) ? sanitize_text_field($data['fiziki_huquqi']) : 'Fiziki şəxs';
         $company_name = isset($data['teskilat_adi']) ? sanitize_text_field($data['teskilat_adi']) : '';
         $voen = isset($data['voen']) ? sanitize_text_field($data['voen']) : '';
+        
+        // YENİ: İanə Təsnifatı validation
+        $iane_tesnifati = isset($data['iane_tesnifati']) ? sanitize_text_field($data['iane_tesnifati']) : '';
         
         // Validate name
         if (empty($name) || strlen($name) < 2) {
@@ -190,6 +193,17 @@ class TIF_Frontend {
             $errors[] = sprintf(__('Maximum məbləğ %s %s olmalıdır.', 'kapital-tif-donation'), 
                             $this->config['payment']['max_amount'], 
                             $this->config['payment']['currency']);
+        }
+        
+        // YENİ: İanə Təsnifatı validation - HƏM FİZİKİ HƏM HÜQUQİ ŞƏXS ÜÇÜN MƏCBURİDİR
+        if (empty($iane_tesnifati)) {
+            $errors[] = __('İanə təsnifatı seçilməlidir.', 'kapital-tif-donation');
+        } else {
+            // Validate that the selected option is one of the allowed values
+            $allowed_values = array('tifiane', 'qtdl', 'qtp');
+            if (!in_array($iane_tesnifati, $allowed_values)) {
+                $errors[] = __('Seçilən ianə təsnifatı düzgün deyil.', 'kapital-tif-donation');
+            }
         }
         
         // Validate company name and VÖEN YALNIZ hüquqi şəxs üçün
@@ -504,7 +518,7 @@ class TIF_Frontend {
     }
     
     private function render_payment_failed_page() {
-        $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
+        $order_id = isset($_GET['order_id']) ? intval($_GET['order_id') : 0;
         $status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : 'unknown';
         $error = isset($_GET['error']) ? sanitize_text_field($_GET['error']) : '';
         $token = isset($_GET['token']) ? sanitize_text_field($_GET['token']) : '';
