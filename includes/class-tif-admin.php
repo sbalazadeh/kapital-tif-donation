@@ -691,7 +691,7 @@ class TIF_Admin {
         $new_columns['payment_date'] = __('Ödəniş tarixi', 'kapital-tif-donation');
         
         foreach ($columns as $key => $value) {
-            if (!isset($new_columns[$key]) && $key != 'title') {
+            if (!isset($new_columns[$key]) && $key != 'title' && $key != 'date') {
                 $new_columns[$key] = $value;
             }
         }
