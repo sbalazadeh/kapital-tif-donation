@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin Export Donations Template
+ * Admin Export Donations Template - İanə Təsnifatı əlavə edildi
  */
 
 // Prevent direct access
@@ -83,8 +83,10 @@ if (!defined('ABSPATH')) {
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Ad və soyad', 'kapital-tif-donation'); ?></th>
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Telefon', 'kapital-tif-donation'); ?></th>
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Məbləğ', 'kapital-tif-donation'); ?></th>
+                            <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Qurumun növü', 'kapital-tif-donation'); ?></th>
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Qurumun adı', 'kapital-tif-donation'); ?></th>
-                            <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('VÖEN', 'kapital-tif-donation'); ?></th> <!-- YENİ COLUMN -->
+                            <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('VÖEN', 'kapital-tif-donation'); ?></th>
+                            <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('İanə Təsnifatı', 'kapital-tif-donation'); ?></th> <!-- YENİ COLUMN -->
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Ödəniş tarixi', 'kapital-tif-donation'); ?></th>
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Status', 'kapital-tif-donation'); ?></th>
                             <th style="border: 1px solid #ccc; padding: 8px;"><?php _e('Bank Order ID', 'kapital-tif-donation'); ?></th>
@@ -95,6 +97,15 @@ if (!defined('ABSPATH')) {
                             $id = $donation->ID;
                             $status_terms = wp_get_object_terms($id, 'odenis_statusu');
                             $status = !empty($status_terms) ? $status_terms[0]->name : get_post_meta($id, 'payment_status', true);
+                            
+                            // YENİ: İanə Təsnifatı mapping
+                            $iane_tesnifati = get_post_meta($id, 'iane_tesnifati', true);
+                            $iane_map = array(
+                                'tifiane' => __('Təhsilin İnkişafı Fonduna', 'kapital-tif-donation'),
+                                'qtdl' => __('"Qızların təhsilinə dəstək" layihəsinə', 'kapital-tif-donation'),
+                                'qtp' => __('Qarabağ Təqaüd Proqramına', 'kapital-tif-donation')
+                            );
+                            $iane_display = isset($iane_map[$iane_tesnifati]) ? $iane_map[$iane_tesnifati] : $iane_tesnifati;
                         ?>
                         <tr>
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo $id; ?></td>
@@ -103,7 +114,9 @@ if (!defined('ABSPATH')) {
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'phone', true)); ?></td>
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'amount', true)); ?></td>
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'company', true)); ?></td>
-                            <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'voen', true)); ?></td> <!-- YENİ DATA -->
+                            <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'company_name', true)); ?></td>
+                            <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'voen', true)); ?></td>
+                            <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html($iane_display); ?></td> <!-- YENİ DATA -->
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'payment_date', true)); ?></td>
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html($status); ?></td>
                             <td style="border: 1px solid #ccc; padding: 8px;"><?php echo esc_html(get_post_meta($id, 'bank_order_id', true)); ?></td>
