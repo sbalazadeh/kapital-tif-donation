@@ -653,6 +653,9 @@ class TIF_Admin {
         ));
     }
     
+    /**
+     * Updated: Add custom columns including İanə Təsnifatı
+     */
     public function add_custom_columns($columns) {
         $new_columns = array();
         
@@ -664,7 +667,8 @@ class TIF_Admin {
         $new_columns['phone'] = __('Telefon', 'kapital-tif-donation');
         $new_columns['amount'] = __('Məbləğ', 'kapital-tif-donation');
         $new_columns['company'] = __('Qurumun növü', 'kapital-tif-donation');
-        $new_columns['voen'] = __('VÖEN', 'kapital-tif-donation'); // YENİ COLUMN
+        $new_columns['voen'] = __('VÖEN', 'kapital-tif-donation');
+        $new_columns['iane_tesnifati'] = __('İanə Təsnifatı', 'kapital-tif-donation'); // YENİ COLUMN
         $new_columns['bank_order_id'] = __('Bank Order ID', 'kapital-tif-donation');
         $new_columns['payment_date'] = __('Ödəniş tarixi', 'kapital-tif-donation');
         
@@ -677,6 +681,9 @@ class TIF_Admin {
         return $new_columns;
     }
     
+    /**
+     * Updated: Fill custom columns including İanə Təsnifatı
+     */
     public function fill_custom_columns($column, $post_id) {
         switch ($column) {
             case 'name':
@@ -704,13 +711,41 @@ class TIF_Admin {
                     echo esc_html($company);
                 }
                 break;
-            // YENİ: VÖEN Column
             case 'voen':
                 $voen = get_post_meta($post_id, 'voen', true);
                 $company = get_post_meta($post_id, 'company', true);
                 
                 if ($company === 'Hüquqi şəxs' && !empty($voen)) {
                     echo '<code>' . esc_html($voen) . '</code>';
+                } else {
+                    echo '<span style="color: #999;">—</span>';
+                }
+                break;
+            // YENİ: İanə Təsnifatı Column
+            case 'iane_tesnifati':
+                $iane_tesnifati = get_post_meta($post_id, 'iane_tesnifati', true);
+                
+                if (!empty($iane_tesnifati)) {
+                    // Map values to display names
+                    $iane_map = array(
+                        'tifiane' => __('Təhsilin İnkişafı Fonduna', 'kapital-tif-donation'),
+                        'qtdl' => __('"Qızların təhsilinə dəstək" layihəsinə', 'kapital-tif-donation'),
+                        'qtp' => __('Qarabağ Təqaüd Proqramına', 'kapital-tif-donation')
+                    );
+                    
+                    $display_name = isset($iane_map[$iane_tesnifati]) ? $iane_map[$iane_tesnifati] : $iane_tesnifati;
+                    
+                    // Color coding for different donation types
+                    $color_map = array(
+                        'tifiane' => '#2271b1', // Blue
+                        'qtdl' => '#d63384',     // Pink
+                        'qtp' => '#198754'       // Green
+                    );
+                    
+                    $color = isset($color_map[$iane_tesnifati]) ? $color_map[$iane_tesnifati] : '#666';
+                    
+                    echo '<span style="background: ' . esc_attr($color) . '; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">' . 
+                         esc_html($display_name) . '</span>';
                 } else {
                     echo '<span style="color: #999;">—</span>';
                 }
@@ -735,15 +770,22 @@ class TIF_Admin {
         }
     }
     
+    /**
+     * Updated: Sortable columns including İanə Təsnifatı
+     */
     public function sortable_columns($columns) {
         $columns['name'] = 'name';
         $columns['amount'] = 'amount';
         $columns['payment_date'] = 'payment_date';
         $columns['bank_order_id'] = 'bank_order_id';
-        $columns['voen'] = 'voen'; // YENİ SORTABLE COLUMN
+        $columns['voen'] = 'voen';
+        $columns['iane_tesnifati'] = 'iane_tesnifati'; // YENİ SORTABLE COLUMN
         return $columns;
     }
     
+    /**
+     * Updated: Order by columns including İanə Təsnifatı
+     */
     public function orderby_columns($query) {
         if (!is_admin() || !$query->is_main_query() || 
             $query->get('post_type') !== $this->config['general']['post_type']) {
@@ -757,7 +799,8 @@ class TIF_Admin {
             'amount' => 'meta_value_num',
             'payment_date' => 'meta_value',
             'bank_order_id' => 'meta_value',
-            'voen' => 'meta_value' // YENİ ORDERBY
+            'voen' => 'meta_value',
+            'iane_tesnifati' => 'meta_value' // YENİ ORDERBY
         );
         
         if (isset($meta_orderby[$orderby])) {
@@ -766,16 +809,167 @@ class TIF_Admin {
         }
     }
     
-    private function load_template($template, $args = array()) {
-        $template_file = TIF_DONATION_TEMPLATES_DIR . $template . '.php';
+    /**
+     * Updated: Donation details callback with İanə Təsnifatı
+     */
+    public function donation_details_callback($post) {
+        wp_nonce_field($this->config['security']['nonce_actions']['donation_details'], 'tif_donation_details_nonce');
         
-        if (file_exists($template_file)) {
-            extract($args);
-            include $template_file;
-        } else {
-            echo '<div class="notice notice-error"><p>' . 
-                 sprintf(__('Template faylı tapılmadı: %s', 'kapital-tif-donation'), esc_html($template)) . 
-                 '</p></div>';
+        $name = get_post_meta($post->ID, 'name', true);
+        $phone = get_post_meta($post->ID, 'phone', true);
+        $amount = get_post_meta($post->ID, 'amount', true);
+        $company = get_post_meta($post->ID, 'company', true);
+        $company_name = get_post_meta($post->ID, 'company_name', true);
+        $voen = get_post_meta($post->ID, 'voen', true);
+        $iane_tesnifati = get_post_meta($post->ID, 'iane_tesnifati', true); // YENİ FIELD
+        
+        $this->load_template('admin/donation-details', array(
+            'name' => $name,
+            'phone' => $phone,
+            'amount' => $amount,
+            'company' => $company,
+            'company_name' => $company_name,
+            'voen' => $voen,
+            'iane_tesnifati' => $iane_tesnifati // YENİ VARIABLE
+        ));
+    }
+    
+    /**
+     * Updated: Save meta box data including İanə Təsnifatı
+     */
+    public function save_meta_box_data($post_id) {
+        // Check nonces
+        if (!isset($_POST['tif_donation_details_nonce']) || 
+            !wp_verify_nonce($_POST['tif_donation_details_nonce'], $this->config['security']['nonce_actions']['donation_details'])) {
+            return;
         }
+        
+        // Check autosave
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+        
+        // Check permissions
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+        
+        // Clear cache when saving
+        wp_cache_delete('pending_donations_count', $this->cache_group);
+        
+        // Save donation details - İanə Təsnifatı əlavə edildi
+        $donation_fields = array('name', 'phone', 'amount', 'company', 'company_name', 'voen', 'iane_tesnifati');
+        foreach ($donation_fields as $field) {
+            if (isset($_POST[$field])) {
+                $value = $field === 'amount' ? floatval($_POST[$field]) : sanitize_text_field($_POST[$field]);
+                update_post_meta($post_id, $field, $value);
+            }
+        }
+        
+        // Save transaction details
+        $transaction_fields = array(
+            'bank_order_id', 'transactionId_local', 'payment_method', 
+            'payment_date', 'approval_code', 'card_number'
+        );
+        
+        foreach ($transaction_fields as $field) {
+            if (isset($_POST[$field])) {
+                update_post_meta($post_id, $field, sanitize_text_field($_POST[$field]));
+            }
+        }
+        
+        // Handle transaction ID as post title
+        if (isset($_POST['transactionId_local'])) {
+            $trans_id = sanitize_text_field($_POST['transactionId_local']);
+            if (!empty($trans_id)) {
+                wp_update_post(array(
+                    'ID' => $post_id,
+                    'post_title' => $trans_id
+                ));
+            }
+        }
+        
+        // Handle payment status update
+        if (isset($_POST['payment_status'])) {
+            $new_status = sanitize_text_field($_POST['payment_status']);
+            $old_status = get_post_meta($post_id, 'payment_status', true);
+            
+            if ($new_status !== $old_status) {
+                update_post_meta($post_id, 'payment_status', $new_status);
+                $this->database->update_order_status($post_id, $new_status);
+            }
+        }
+    }
+    
+    /**
+     * Updated: Export selected donations including İanə Təsnifatı
+     */
+    private function export_selected_donations($post_ids) {
+        $donations = array();
+        
+        foreach ($post_ids as $post_id) {
+            $post = get_post($post_id);
+            if ($post && $post->post_type === $this->config['general']['post_type']) {
+                $donations[] = $post;
+            }
+        }
+        
+        if (empty($donations)) {
+            wp_die(__('Seçilən ianələr tapılmadı.', 'kapital-tif-donation'));
+        }
+        
+        // Generate CSV
+        $filename = 'selected_donations_' . date('Y-m-d_H-i-s') . '.csv';
+        
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        $output = fopen('php://output', 'w');
+        
+        // Add BOM for UTF-8
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        // Headers - İanə Təsnifatı əlavə edildi
+        $headers = array(
+            'ID', 'Transaction ID', 'Ad və soyad', 'Telefon', 'Məbləğ',
+            'Qurumun növü', 'Qurumun adı', 'VÖEN', 'İanə Təsnifatı', 'Ödəniş tarixi', 'Status', 'Bank Order ID'
+        );
+        fputcsv($output, $headers);
+        
+        // Data - İanə Təsnifatı əlavə edildi
+        foreach ($donations as $donation) {
+            $status_terms = wp_get_object_terms($donation->ID, $this->config['general']['taxonomy']);
+            $status = !empty($status_terms) ? $status_terms[0]->name : get_post_meta($donation->ID, 'payment_status', true);
+            
+            // Map İanə Təsnifatı for export
+            $iane_tesnifati = get_post_meta($donation->ID, 'iane_tesnifati', true);
+            $iane_map = array(
+                'tifiane' => 'Təhsilin İnkişafı Fonduna',
+                'qtdl' => 'Qızların təhsilinə dəstək layihəsinə',
+                'qtp' => 'Qarabağ Təqaüd Proqramına'
+            );
+            $iane_display = isset($iane_map[$iane_tesnifati]) ? $iane_map[$iane_tesnifati] : $iane_tesnifati;
+            
+            $row = array(
+                $donation->ID,
+                get_post_meta($donation->ID, 'transactionId_local', true),
+                get_post_meta($donation->ID, 'name', true),
+                get_post_meta($donation->ID, 'phone', true),
+                get_post_meta($donation->ID, 'amount', true),
+                get_post_meta($donation->ID, 'company', true),
+                get_post_meta($donation->ID, 'company_name', true),
+                get_post_meta($donation->ID, 'voen', true),
+                $iane_display, // YENİ FIELD
+                get_post_meta($donation->ID, 'payment_date', true),
+                $status,
+                get_post_meta($donation->ID, 'bank_order_id', true)
+            );
+            
+            fputcsv($output, $row);
+        }
+        
+        fclose($output);
     }
 }
