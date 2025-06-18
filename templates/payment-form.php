@@ -53,7 +53,7 @@ if (!defined('ABSPATH')) {
                 <h4 class="my-7"><?php _e('Fiziki şəxs haqqında informasiya', 'kapital-tif-donation'); ?></h4>
 
                 <div class="row">
-                    <div class="col-lg-12">
+                    <div class="col-md-6">
                         <!-- Form -->
                         <div class="mb-4">
                             <label class="form-label"><?php _e('Fiziki şəxsin Soyadı, Adı, Ata adı', 'kapital-tif-donation'); ?></label>
@@ -94,6 +94,26 @@ if (!defined('ABSPATH')) {
                     <div class="col-md-6">
                         <!-- Form -->
                         <div class="mb-4">
+                            <label class="form-label" for="tifianesec"><?php _e('İanə edəcəyiniz təsnifat', 'kapital-tif-donation'); ?></label>
+
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-prepend input-group-text">
+                                    <i class="bi bi-files-alt"></i>
+                                </span>
+                                <select id="tifianesec" name="iane_tesnifati" class="form-select form-select-lg" required>
+                                    <option value="" selected disabled><?php esc_attr_e('Zəhmət olmasa seçin', 'kapital-tif-donation'); ?></option>
+                                    <option value="tifiane"><?php esc_attr_e('Təhsilin İnkişafı Fonduna', 'kapital-tif-donation'); ?></option>
+                                    <option value="qtdl"><?php esc_attr_e('"Qızların təhsilinə dəstək" layihəsinə', 'kapital-tif-donation'); ?></option>
+                                    <option value="qtp"><?php esc_attr_e('Qarabağ Təqaüd Proqramına', 'kapital-tif-donation'); ?></option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- End Form -->
+                    </div>
+
+                    <div class="col-md-6">
+                        <!-- Form -->
+                        <div class="mb-4">
                             <label class="form-label"><?php printf(__('Məbləğ (%s)', 'kapital-tif-donation'), $config['payment']['currency']); ?></label>
 
                             <div class="input-group input-group-merge">
@@ -130,7 +150,7 @@ if (!defined('ABSPATH')) {
                 <h4 class="my-7"><?php _e('Hüquqi şəxs haqqında informasiya', 'kapital-tif-donation'); ?></h4>
 
                 <div class="row">
-                    <div class="col-lg-12">
+                    <div class="col-md-6">
                         <!-- Form -->
                         <div class="mb-4">
                             <label class="form-label"><?php _e('Şəxsin Soyadı, Adı, Ata adı', 'kapital-tif-donation'); ?></label>
@@ -156,32 +176,11 @@ if (!defined('ABSPATH')) {
 
                             <div class="input-group input-group-merge">
                                 <span class="input-group-prepend input-group-text">
-                                    <i class="bi-building"></i>
+                                    <i class="bi bi-bank"></i>
                                 </span>
                                 <input type="text" class="form-control form-control-lg" 
                                        name="teskilat_adi" 
                                        placeholder="<?php esc_attr_e('Qurumun adı', 'kapital-tif-donation'); ?>" 
-                                       required>
-                            </div>
-                        </div>
-                        <!-- End Form -->
-                    </div>
-                    <!-- End Col -->
-
-                    <div class="col-md-6">
-                        <!-- Form - YENİ FIELD: Qurumun VÖENİ -->
-                        <div class="mb-4">
-                            <label class="form-label"><?php _e('Qurumun VÖENİ', 'kapital-tif-donation'); ?></label>
-
-                            <div class="input-group input-group-merge">
-                                <span class="input-group-prepend input-group-text">
-                                    <i class="bi-hash"></i>
-                                </span>
-                                <input type="text" class="form-control form-control-lg" 
-                                       name="voen" 
-                                       placeholder="<?php esc_attr_e('Qurumun VÖENİ', 'kapital-tif-donation'); ?>" 
-                                       maxlength="10" 
-                                       pattern="[0-9]{10}" 
                                        required>
                             </div>
                         </div>
@@ -207,6 +206,47 @@ if (!defined('ABSPATH')) {
                         <!-- End Form -->
                     </div>
                     <!-- End Col -->
+
+                    <div class="col-md-6">
+                        <!-- Form - YENİ FIELD: Qurumun VÖENİ -->
+                        <div class="mb-4">
+                            <label class="form-label"><?php _e('Qurumun VÖENİ', 'kapital-tif-donation'); ?></label>
+
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-prepend input-group-text">
+                                    <i class="bi bi-upc"></i>
+                                </span>
+                                <input type="text" class="form-control form-control-lg" 
+                                       name="voen" 
+                                       placeholder="<?php esc_attr_e('Qurumun VÖENİ', 'kapital-tif-donation'); ?>" 
+                                       maxlength="10" 
+                                       pattern="[0-9]{10}" 
+                                       required>
+                            </div>
+                        </div>
+                        <!-- End Form -->
+                    </div>
+                    <!-- End Col -->
+
+                    <div class="col-md-6">
+                        <!-- Form -->
+                        <div class="mb-4">
+                            <label class="form-label" for="tifianesec"><?php _e('İanə edəcəyiniz təsnifat', 'kapital-tif-donation'); ?></label>
+
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-prepend input-group-text">
+                                    <i class="bi bi-files-alt"></i>
+                                </span>
+                                <select id="tifianesec" name="iane_tesnifati" class="form-select form-select-lg" required>
+                                    <option value="" selected disabled><?php esc_attr_e('Zəhmət olmasa seçin', 'kapital-tif-donation'); ?></option>
+                                    <option value="tifiane"><?php esc_attr_e('Təhsilin İnkişafı Fonduna', 'kapital-tif-donation'); ?></option>
+                                    <option value="qtdl"><?php esc_attr_e('"Qızların təhsilinə dəstək" layihəsinə', 'kapital-tif-donation'); ?></option>
+                                    <option value="qtp"><?php esc_attr_e('Qarabağ Təqaüd Proqramına', 'kapital-tif-donation'); ?></option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- End Form -->
+                    </div>
 
                     <div class="col-md-6">
                         <!-- Form -->
