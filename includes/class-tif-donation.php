@@ -292,9 +292,13 @@ function tif_auto_generate_certificate($order_id) {
     $certificate_generator = new TIF_Certificate($config);
     
     // Determine certificate type based on order meta or default
-    $certificate_type = get_post_meta($order_id, 'donation_category', true);
-    if (!$certificate_type || !in_array($certificate_type, array('tif', 'youth', 'sustainable'))) {
-        $certificate_type = $config['certificate']['default_type'] ?? 'tif';
+    $iane_tesnifati = get_post_meta($order_id, 'iane_tesnifati', true);
+    $certificate_mapping = array(
+        'tifiane' => 'tif',
+        'qtdl' => 'youth', 
+        'qtp' => 'sustainable'
+    );
+    $certificate_type = $certificate_mapping[$iane_tesnifati] ?? 'tif';
     }
     
     // Generate certificate
