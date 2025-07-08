@@ -120,3 +120,94 @@ function tif_donation_global_admin_notice() {
     }
 }
 add_action('admin_notices', 'tif_donation_global_admin_notice');
+
+add_action('init', 'tif_init_certificate_system');
+
+function tif_init_certificate_system() {
+    global $config;
+    
+    // Check if certificate system is enabled
+    if (!isset($config['certificate']['enabled']) || !$config['certificate']['enabled']) {
+        return;
+    }
+    
+    // Include certificate classes
+    require_once TIF_DONATION_PLUGIN_DIR . 'includes/class-tif-certificate.php';
+    require_once TIF_DONATION_PLUGIN_DIR . 'includes/class-tif-certificate-ajax.php';
+    
+    // Initialize certificate AJAX handler
+    new TIF_Certificate_Ajax($config);
+    
+    // Auto-generate certificate on successful payment
+    if (isset($config['certificate']['auto_generate']) && $config['certificate']['auto_generate']) {
+        add_action('tif_payment_completed', 'tif_auto_generate_certificate', 10, 1);
+    }
+}
+
+/**
+ * Auto-generate certificate on successful payment
+ */
+function tif_auto_generate_certificate($order_id) {
+    global $config;
+    
+    $certificate_generator = new TIF_Certificate($config);
+    
+    // İanə Təsnifatı əsasında certificate type müəyyən et
+    $iane_tesnifati = get_post_meta($order_id, 'iane_tesnifati', true);
+    $certificate_mapping = array(
+        'tifiane' => 'tif',
+        'qtdl' => 'youth', 
+        'qtp' => 'sustainable'
+    );
+    $certificate_type = $certificate_mapping[$iane_tesnifati] ?? $config['certificate']['default_type'] ?? 'tif';
+    
+    // Generate certificate
+    $svg_content = $certificate_generator->generate_certificate($order_id, $certificate_type);
+    
+    if ($svg_content) {
+        // Mark as generated
+        update_post_meta($order_id, 'certificate_generated', true);
+        update_post_meta($order_id, 'certificate_type', $certificate_type);
+        update_post_meta($order_id, 'certificate_date', current_time('Y-m-d H:i:s'));
+        
+        // Log success
+        error_log("TIF Certificate: Auto-generated for order {$order_id}, type: {$certificate_type}");
+    }
+}
+
+// Frontend certificate display shortcode
+add_shortcode('tif_certificate', 'tif_certificate_shortcode');
+
+function tif_certificate_shortcode($atts) {
+    $atts = shortcode_atts(array(
+        'order_id' => 0,
+        'type' => 'tif',
+        'display' => 'button' // button, inline, preview
+    ), $atts);
+    
+    $order_id = intval($atts['order_id']);
+    if ($order_id <= 0) {
+        return '';
+    }
+    
+    global $config;
+    $certificate_generator = new TIF_Certificate($config);
+    
+    if (!$certificate_generator->is_certificate_enabled($order_id)) {
+        return '';
+    }
+    
+    $download_url = $certificate_generator->get_download_url($order_id, $atts['type']);
+    
+    if ($atts['display'] === 'button') {
+        return sprintf(
+            '<a href="%s" class="tif-certificate-download btn btn-success" target="_blank">
+                <i class="fas fa-download"></i> %s
+            </a>',
+            esc_url($download_url),
+            __('Sertifikatı Yüklə', 'kapital-tif-donation')
+        );
+    }
+    
+    return '';
+}
