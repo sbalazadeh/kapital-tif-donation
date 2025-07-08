@@ -291,15 +291,14 @@ function tif_auto_generate_certificate($order_id) {
     
     $certificate_generator = new TIF_Certificate($config);
     
-    // Determine certificate type based on order meta or default
+    // İanə Təsnifatı əsasında certificate type müəyyən et
     $iane_tesnifati = get_post_meta($order_id, 'iane_tesnifati', true);
     $certificate_mapping = array(
         'tifiane' => 'tif',
         'qtdl' => 'youth', 
         'qtp' => 'sustainable'
     );
-    $certificate_type = $certificate_mapping[$iane_tesnifati] ?? 'tif';
-    }
+    $certificate_type = $certificate_mapping[$iane_tesnifati] ?? $config['certificate']['default_type'] ?? 'tif';
     
     // Generate certificate
     $svg_content = $certificate_generator->generate_certificate($order_id, $certificate_type);
