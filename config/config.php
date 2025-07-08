@@ -102,3 +102,17 @@ return array(
         'form_validation' => true,
     ),
 );
+
+// Certificate settings əlavə edin:
+$config['certificate'] = array(
+    'enabled' => true,
+    'default_type' => 'tif',
+    'templates_dir' => TIF_DONATION_PLUGIN_DIR . 'templates/certificate/',
+    'download_enabled' => true,
+    'print_enabled' => true,
+    'share_enabled' => false, // Future feature
+    'auto_generate' => true, // Successful payment-dən sonra avtomatik
+);
+
+// Debug settings-ə əlavə:
+$config['debug']['log_certificate'] = true;
