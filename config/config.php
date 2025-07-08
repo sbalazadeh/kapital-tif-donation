@@ -19,7 +19,7 @@ return array(
         'capability' => 'manage_options',
     ),
     
-    //  RODUCTION MODE ACTIVE
+    // PRODUCTION MODE ACTIVE
     'test_mode' => false,
     
     // API Configuration - Test Environment (saxlanılır test üçün)
@@ -45,6 +45,22 @@ return array(
         'min_amount' => 1,
         'max_amount' => 10000,
         'timeout' => 30,
+    ),
+    
+    // Certificate settings
+    'certificate' => array(
+        'enabled' => true,
+        'auto_generate' => true,
+        'default_type' => 'tif',
+        'templates_dir' => 'templates/certificate/',
+        'download_enabled' => true,
+        'print_enabled' => true,
+        'share_enabled' => false, // Future feature
+        'types' => array(
+            'tif' => 'Təhsilin İnkişafı Fondu',
+            'youth' => 'Gənc qızların təhsilinə dəstək',
+            'sustainable' => 'Qarabağ Təqaüd Proqramı'
+        )
     ),
     
     // Order statuses mapping
@@ -84,6 +100,7 @@ return array(
     // Debug settings - PRODUCTION DEBUG DISABLED
     'debug' => array(
         'log_api_requests' => false, // Log-lar söndürülüb
+        'log_certificate' => true, // Certificate log-ları
         'log_file' => WP_CONTENT_DIR . '/uploads/tif-donation-logs.txt',
         'max_log_size' => 5 * 1024 * 1024, // 5MB
     ),
@@ -102,17 +119,3 @@ return array(
         'form_validation' => true,
     ),
 );
-
-// Certificate settings əlavə edin:
-$config['certificate'] = array(
-    'enabled' => true,
-    'default_type' => 'tif',
-    'templates_dir' => TIF_DONATION_PLUGIN_DIR . 'templates/certificate/',
-    'download_enabled' => true,
-    'print_enabled' => true,
-    'share_enabled' => false, // Future feature
-    'auto_generate' => true, // Successful payment-dən sonra avtomatik
-);
-
-// Debug settings-ə əlavə:
-$config['debug']['log_certificate'] = true;
