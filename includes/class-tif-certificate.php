@@ -255,14 +255,14 @@ class TIF_Certificate {
      * @param string $certificate_type
      * @return string
      */
-    public function get_download_url($order_id, $certificate_type = 'tif') {
-        return add_query_arg(array(
-            'action' => 'tif_download_certificate',
-            'order_id' => $order_id,
-            'type' => $certificate_type,
-            'nonce' => wp_create_nonce('tif_download_' . $order_id)
-        ), admin_url('admin-ajax.php'));
-    }
+        public function get_download_url($order_id, $type = 'tif') {
+            return add_query_arg(array(
+                'action' => 'tif_download_certificate',
+                'order_id' => $order_id,
+                'type' => $type,
+                'nonce' => wp_create_nonce('tif_download_' . $order_id)
+            ), admin_url('admin-ajax.php'));
+        }
     
     /**
      * Log certificate generation
