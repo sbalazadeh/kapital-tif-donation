@@ -65,9 +65,31 @@ window.TIFCertificate = (function() {
             elements.printBtn.addEventListener('click', handlePrintClick);
         }
 
-        // Download button click tracking
+        // Download button handler with nonce
         if (elements.downloadBtn) {
-            elements.downloadBtn.addEventListener('click', handleDownloadClick);
+            elements.downloadBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Get order ID and create nonce
+                const orderId = elements.previewBtn?.getAttribute('data-order-id');
+                if (!orderId) {
+                    showError('Order ID tapılmadı.');
+                    return;
+                }
+                
+                // Create download URL with nonce
+                const downloadUrl = new URL(this.href);
+                downloadUrl.searchParams.set('nonce', wp_create_nonce('tif_download_' + orderId));
+                
+                // Navigate to download URL
+                window.location.href = downloadUrl.toString();
+                
+                // Track download event
+                trackEvent('certificate_download', {
+                    order_id: orderId,
+                    certificate_type: elements.previewBtn?.getAttribute('data-certificate-type')
+                });
+            });
         }
 
         // Keyboard accessibility
