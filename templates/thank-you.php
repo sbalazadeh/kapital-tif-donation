@@ -181,6 +181,20 @@ if (class_exists('TIF_Certificate')) {
     </div>
 </div>
 
+<!-- Certificate CSS -->
+<link rel="stylesheet" href="<?php echo TIF_DONATION_ASSETS_URL; ?>css/certificate.css?v=<?php echo TIF_DONATION_VERSION; ?>">
+
+<!-- Certificate JavaScript -->
+<script src="<?php echo TIF_DONATION_ASSETS_URL; ?>js/certificate.js?v=<?php echo TIF_DONATION_VERSION; ?>"></script>
+
+<!-- AJAX URL for JavaScript -->
+<script>
+var tif_certificate_ajax = {
+    ajax_url: '<?php echo admin_url('admin-ajax.php'); ?>',
+    nonce: '<?php echo wp_create_nonce('tif_preview_certificate'); ?>'
+};
+</script>
+
 <?php //if ($certificate_enabled && $status === 'success'): 
         if (($status === 'success' || $status === 'completed')): ?>
 <!-- Certificate JavaScript will be enqueued separately -->
