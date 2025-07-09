@@ -189,7 +189,7 @@ if (class_exists('TIF_Certificate')) {
 var tif_certificate_ajax = {
     ajax_url: '<?php echo admin_url('admin-ajax.php'); ?>',
     nonce: '<?php echo wp_create_nonce('tif_preview_certificate'); ?>',
-    download_nonce_prefix: 'tif_download_'
+    download_nonce: '<?php echo wp_create_nonce('tif_download_' . $order_id); ?>'
 };
 </script>
 
