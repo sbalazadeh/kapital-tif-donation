@@ -79,7 +79,7 @@ window.TIFCertificate = (function() {
                 
                 // Create download URL with nonce
                 const downloadUrl = new URL(this.href);
-                downloadUrl.searchParams.set('nonce', wp_create_nonce('tif_download_' + orderId));
+                downloadUrl.searchParams.set('nonce', tif_certificate_ajax.download_nonce);
                 
                 // Navigate to download URL
                 window.location.href = downloadUrl.toString();
