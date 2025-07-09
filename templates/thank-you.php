@@ -32,7 +32,8 @@ $certificate_enabled = false;
 $certificate_type = 'tif'; // default
 
 if (class_exists('TIF_Certificate')) {
-    $certificate_generator = new TIF_Certificate();
+    global $config;
+    $certificate_generator = new TIF_Certificate($config);
     $certificate_enabled = $certificate_generator->is_certificate_enabled($order_id);
     
     // Determine certificate type based on iane_tesnifati
