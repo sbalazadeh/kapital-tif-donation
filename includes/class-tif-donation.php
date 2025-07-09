@@ -283,37 +283,6 @@ if (isset($config['certificate']['enabled']) && $config['certificate']['enabled'
     }
 }
 
-/**
- * Auto-generate certificate on successful payment
- */
-function tif_auto_generate_certificate($order_id) {
-    global $config;
-    
-    $certificate_generator = new TIF_Certificate($config);
-    
-    // İanə Təsnifatı əsasında certificate type müəyyən et
-    $iane_tesnifati = get_post_meta($order_id, 'iane_tesnifati', true);
-    $certificate_mapping = array(
-        'tifiane' => 'tif',
-        'qtdl' => 'youth', 
-        'qtp' => 'sustainable'
-    );
-    $certificate_type = $certificate_mapping[$iane_tesnifati] ?? $config['certificate']['default_type'] ?? 'tif';
-    
-    // Generate certificate
-    $svg_content = $certificate_generator->generate_certificate($order_id, $certificate_type);
-    
-    if ($svg_content) {
-        // Mark as generated
-        update_post_meta($order_id, 'certificate_generated', true);
-        update_post_meta($order_id, 'certificate_type', $certificate_type);
-        update_post_meta($order_id, 'certificate_date', current_time('Y-m-d H:i:s'));
-        
-        // Log success
-        error_log("TIF Certificate: Auto-generated for order {$order_id}, type: {$certificate_type}");
-    }
-}
-
 // Frontend certificate display shortcode
 add_shortcode('tif_certificate', 'tif_certificate_shortcode');
 
