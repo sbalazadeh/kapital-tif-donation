@@ -99,6 +99,21 @@ if (class_exists('TIF_Certificate')) {
         <p><strong><?php _e('Tarix:', 'kapital-tif-donation'); ?></strong> <?php echo esc_html($date); ?></p>
     </div>
 
+    <!-- DEBUG START -->
+    <div style="background: #f0f0f0; padding: 20px; margin: 20px 0; border: 2px solid #333;">
+        <h3>DEBUG INFO:</h3>
+        <p>Certificate Enabled: <?php echo $certificate_enabled ? 'YES' : 'NO'; ?></p>
+        <p>Status: <?php echo $status; ?></p>
+        <p>Certificate Type: <?php echo $certificate_type; ?></p>
+        <p>Order ID: <?php echo $order_id; ?></p>
+        <p>Config exists: <?php echo isset($config) ? 'YES' : 'NO'; ?></p>
+        <p>Certificate class exists: <?php echo class_exists('TIF_Certificate') ? 'YES' : 'NO'; ?></p>
+        <?php if (isset($config)): ?>
+        <p>Certificate config enabled: <?php echo isset($config['certificate']['enabled']) ? ($config['certificate']['enabled'] ? 'YES' : 'NO') : 'NOT SET'; ?></p>
+        <?php endif; ?>
+    </div>
+    <!-- DEBUG END -->
+
     <?php //if ($certificate_enabled && $status === 'success'):
     if ($certificate_enabled && ($status === 'success' || $status === 'completed')): ?>
     <!-- Certificate Section -->
