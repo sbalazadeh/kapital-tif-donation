@@ -99,7 +99,8 @@ if (class_exists('TIF_Certificate')) {
         <p><strong><?php _e('Tarix:', 'kapital-tif-donation'); ?></strong> <?php echo esc_html($date); ?></p>
     </div>
 
-    <?php if ($certificate_enabled && $status === 'success'): ?>
+    <?php //if ($certificate_enabled && $status === 'success'):
+    if ($certificate_enabled && ($status === 'success' || $status === 'completed')): ?>
     <!-- Certificate Section -->
     <div class="tif-certificate-section">
         <div class="tif-certificate-header">
