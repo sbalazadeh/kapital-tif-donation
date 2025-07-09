@@ -108,6 +108,7 @@ class TIF_Certificate {
      * @return string|false Generated SVG content or false on error
      */
     public function generate_certificate($order_id, $certificate_type = 'tif') {
+    error_log("TIF Certificate Debug - Order ID: $order_id, Type: $certificate_type");
         try {
             // Validate certificate type
             if (!isset($this->certificate_templates[$certificate_type])) {
