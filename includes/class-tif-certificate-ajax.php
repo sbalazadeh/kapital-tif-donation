@@ -39,9 +39,9 @@
             }
             
             // Check if certificate is enabled for this order
-            if (!$this->certificate_generator->is_certificate_enabled($order_id)) {
-                wp_die(__('Bu sifariş üçün sertifikat mövcud deyil.', 'kapital-tif-donation'));
-            }
+            //if (!$this->certificate_generator->is_certificate_enabled($order_id)) {
+            //    wp_die(__('Bu sifariş üçün sertifikat mövcud deyil.', 'kapital-tif-donation'));
+            //}
             
             // Generate certificate
             $svg_content = $this->certificate_generator->generate_certificate($order_id, $type);
@@ -75,16 +75,20 @@
     }
     
     /**
-     * Handle certificate preview request (for admin)
+     * Handle certificate preview request
      */
     public function handle_preview() {
-        // Verify admin access
-        if (!current_user_can('manage_options')) {
-            wp_die(__('Icazəniz yoxdur.', 'kapital-tif-donation'));
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'tif_preview_certificate')) {
+            wp_send_json_error(array('message' => __('Təhlükəsizlik xətası.', 'kapital-tif-donation')));
         }
         
         $order_id = intval($_POST['order_id'] ?? 0);
         $type = sanitize_text_field($_POST['type'] ?? 'tif');
+        
+        if ($order_id <= 0) {
+            wp_send_json_error(array('message' => __('Order ID tapılmadı.', 'kapital-tif-donation')));
+        }
         
         // Generate certificate
         $svg_content = $this->certificate_generator->generate_certificate($order_id, $type);
