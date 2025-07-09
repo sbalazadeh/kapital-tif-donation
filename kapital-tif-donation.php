@@ -254,9 +254,16 @@ function tif_create_test_order_page() {
         wp_set_object_terms($order_id, 'completed', 'odenis_statusu');
         
         // Success message
+        //echo '<div class="notice notice-success"><p>';
+        //echo 'Test order yaradıldı! Order ID: ' . $order_id . '<br>';
+        //echo '<a href="' . home_url('/donation/?thank_you=1&order_id=' . $order_id . '&status=success') . '" target="_blank" class="button button-primary">Thank You səhifəsinə keç</a>';
+        //echo '</p></div>';
+
+        // Success message with token
+        $token = wp_create_nonce('tif_thank_you_' . $order_id);
         echo '<div class="notice notice-success"><p>';
         echo 'Test order yaradıldı! Order ID: ' . $order_id . '<br>';
-        echo '<a href="' . home_url('/donation/?thank_you=1&order_id=' . $order_id . '&status=success') . '" target="_blank" class="button button-primary">Thank You səhifəsinə keç</a>';
+        echo '<a href="' . home_url('/donation/?thank_you=1&order_id=' . $order_id . '&status=success&token=' . $token) . '" target="_blank" class="button button-primary">Thank You səhifəsinə keç</a>';
         echo '</p></div>';
     }
     ?>
