@@ -211,3 +211,73 @@ function tif_certificate_shortcode($atts) {
     
     return '';
 }
+
+// Test Order functionality
+add_action('admin_menu', 'tif_add_test_order_menu');
+
+function tif_add_test_order_menu() {
+    add_submenu_page(
+        'edit.php?post_type=odenis',
+        'Test Order Yarat',
+        'Test Order',
+        'manage_options',
+        'tif-create-test-order',
+        'tif_create_test_order_page'
+    );
+}
+
+function tif_create_test_order_page() {
+    global $config;
+    
+    if (isset($_POST['create_test_order']) && wp_verify_nonce($_POST['_wpnonce'], 'create_test_order')) {
+        // Test order yarat
+        $order_id = wp_insert_post(array(
+            'post_type' => 'odenis',
+            'post_status' => 'publish',
+            'post_title' => 'Test Order - ' . date('Y-m-d H:i:s')
+        ));
+        
+        // Meta data əlavə et
+        update_post_meta($order_id, 'name', 'Test İstifadəçi');
+        update_post_meta($order_id, 'phone', '+994501234567');
+        update_post_meta($order_id, 'amount', '100');
+        update_post_meta($order_id, 'company', 'Fiziki şəxs');
+        update_post_meta($order_id, 'iane_tesnifati', 'tifiane');
+        update_post_meta($order_id, 'payment_status', 'completed');
+        update_post_meta($order_id, 'payment_date', current_time('mysql'));
+        update_post_meta($order_id, 'transactionId_local', 'TEST-' . $order_id);
+        update_post_meta($order_id, 'bank_order_id', 'BANK-TEST-' . $order_id);
+        update_post_meta($order_id, 'certificate_generated', true);
+        update_post_meta($order_id, 'certificate_type', 'tif');
+        
+        // Status taxonomy əlavə et
+        wp_set_object_terms($order_id, 'completed', 'odenis_statusu');
+        
+        // Success message
+        echo '<div class="notice notice-success"><p>';
+        echo 'Test order yaradıldı! Order ID: ' . $order_id . '<br>';
+        echo '<a href="' . home_url('/donation/?thank_you=1&order_id=' . $order_id . '&status=success') . '" target="_blank" class="button button-primary">Thank You səhifəsinə keç</a>';
+        echo '</p></div>';
+    }
+    ?>
+    <div class="wrap">
+        <h1>Test Order Yarat</h1>
+        <form method="post">
+            <?php wp_nonce_field('create_test_order'); ?>
+            <div class="card" style="max-width: 600px; padding: 20px;">
+                <h3>Test Order Məlumatları</h3>
+                <p>Bu test order yaradılacaq:</p>
+                <ul>
+                    <li><strong>Ad:</strong> Test İstifadəçi</li>
+                    <li><strong>Məbləğ:</strong> 100 AZN</li>
+                    <li><strong>İanə Təsnifatı:</strong> Təhsilin İnkişafı Fonduna</li>
+                    <li><strong>Status:</strong> Completed (Uğurlu)</li>
+                </ul>
+                <p class="submit">
+                    <button type="submit" name="create_test_order" class="button button-primary">Test Order Yarat</button>
+                </p>
+            </div>
+        </form>
+    </div>
+    <?php
+}
