@@ -181,7 +181,8 @@ if (class_exists('TIF_Certificate')) {
     </div>
 </div>
 
-<?php if ($certificate_enabled && $status === 'success'): ?>
+<?php //if ($certificate_enabled && $status === 'success'): 
+        if (($status === 'success' || $status === 'completed')): ?>
 <!-- Certificate JavaScript will be enqueued separately -->
 <script type="text/javascript">
 document.addEventListener('DOMContentLoaded', function() {
