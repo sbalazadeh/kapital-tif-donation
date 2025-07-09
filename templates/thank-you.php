@@ -184,16 +184,21 @@ if (class_exists('TIF_Certificate')) {
 <!-- Certificate CSS -->
 <link rel="stylesheet" href="<?php echo TIF_DONATION_ASSETS_URL; ?>css/certificate.css?v=<?php echo TIF_DONATION_VERSION; ?>">
 
-<!-- AJAX URL for JavaScript - BUNU BİRİNCİ YERLƏŞDİRİN -->
+<!-- jQuery (WordPress AJAX üçün) -->
+<?php wp_print_scripts('jquery'); ?>
+
+<!-- AJAX Configuration -->
 <script>
+window.ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
 var tif_certificate_ajax = {
-    ajax_url: '<?php echo admin_url('admin-ajax.php'); ?>',
+    ajax_url: window.ajaxurl,
     nonce: '<?php echo wp_create_nonce('tif_preview_certificate'); ?>',
-    download_nonce: '<?php echo wp_create_nonce('tif_download_' . $order_id); ?>'
+    download_nonce: '<?php echo wp_create_nonce('tif_download_' . $order_id); ?>',
+    order_id: '<?php echo $order_id; ?>'
 };
 </script>
 
-<!-- Certificate JavaScript - SONRA BUNU -->
+<!-- Certificate JavaScript -->
 <script src="<?php echo TIF_DONATION_ASSETS_URL; ?>js/certificate.js?v=<?php echo TIF_DONATION_VERSION; ?>"></script>
 
 <?php if (($status === 'success' || $status === 'completed')): ?>
