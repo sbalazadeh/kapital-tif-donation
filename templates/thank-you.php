@@ -46,7 +46,12 @@ $certificate_enabled = false;
 $certificate_type = 'tif'; // default
 
 if (class_exists('TIF_Certificate')) {
-    global $config;
+    // Config-i yüklə
+    $config_file = TIF_DONATION_CONFIG_DIR . 'config.php';
+    if (file_exists($config_file)) {
+        $config = require $config_file;
+    }
+    
     $certificate_generator = new TIF_Certificate($config);
     $certificate_enabled = $certificate_generator->is_certificate_enabled($order_id);
     
