@@ -184,20 +184,19 @@ if (class_exists('TIF_Certificate')) {
 <!-- Certificate CSS -->
 <link rel="stylesheet" href="<?php echo TIF_DONATION_ASSETS_URL; ?>css/certificate.css?v=<?php echo TIF_DONATION_VERSION; ?>">
 
-<!-- Certificate JavaScript -->
-<script src="<?php echo TIF_DONATION_ASSETS_URL; ?>js/certificate.js?v=<?php echo TIF_DONATION_VERSION; ?>"></script>
-
-<!-- AJAX URL for JavaScript -->
+<!-- AJAX URL for JavaScript - BUNU BİRİNCİ YERLƏŞDİRİN -->
 <script>
 var tif_certificate_ajax = {
     ajax_url: '<?php echo admin_url('admin-ajax.php'); ?>',
-    nonce: '<?php echo wp_create_nonce('tif_preview_certificate'); ?>'
+    nonce: '<?php echo wp_create_nonce('tif_preview_certificate'); ?>',
+    download_nonce_prefix: 'tif_download_'
 };
 </script>
 
-<?php //if ($certificate_enabled && $status === 'success'): 
-        if (($status === 'success' || $status === 'completed')): ?>
-<!-- Certificate JavaScript will be enqueued separately -->
+<!-- Certificate JavaScript - SONRA BUNU -->
+<script src="<?php echo TIF_DONATION_ASSETS_URL; ?>js/certificate.js?v=<?php echo TIF_DONATION_VERSION; ?>"></script>
+
+<?php if (($status === 'success' || $status === 'completed')): ?>
 <script type="text/javascript">
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof TIFCertificate !== 'undefined') {
