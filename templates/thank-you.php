@@ -10,6 +10,20 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Debug üçün
+error_log('Thank You Page Debug:');
+error_log('Order ID: ' . $order_id);
+error_log('Status: ' . $status);
+error_log('Request: ' . print_r($_REQUEST, true));
+
+// Test mode üçün nonce yoxlamasını keç
+$is_test_mode = isset($_GET['test_mode']) || (strpos(get_post_meta($order_id, 'transactionId_local', true), 'TEST-') === 0);
+
+if ($is_test_mode) {
+    // Test mode - nonce yoxlama
+    error_log('Test mode aktiv');
+}
+
 // Get order details
 $name = get_post_meta($order_id, 'name', true);
 $amount = get_post_meta($order_id, 'amount', true);
