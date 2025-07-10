@@ -128,19 +128,17 @@ if (class_exists('TIF_Certificate')) {
             </div>
         </div>
 
-        <!-- DUAL Actions - Download + Clean Print -->
+        <!-- PNG Download + Clean Print -->
         <div class="tif-certificate-actions">
             <button type="button" onclick="openCertificateWindow()" class="btn btn-primary">
                 <i class="fas fa-print"></i>
                 <?php _e('Çap et', 'kapital-tif-donation'); ?>
             </button>
             
-            <a href="data:image/svg+xml;charset=utf-8,<?php echo rawurlencode($certificate_svg); ?>" 
-               download="TIF_Sertifikat_<?php echo esc_attr(sanitize_file_name($name)); ?>_<?php echo date('Y-m-d'); ?>.svg" 
-               class="btn btn-success">
+            <button type="button" onclick="downloadAsPNG()" class="btn btn-success">
                 <i class="fas fa-download"></i>
-                <?php _e('SVG yüklə', 'kapital-tif-donation'); ?>
-            </a>
+                <?php _e('PNG yüklə', 'kapital-tif-donation'); ?>
+            </button>
         </div>
 
         <!-- Certificate Type Info -->
@@ -294,10 +292,70 @@ if (class_exists('TIF_Certificate')) {
 }
 </style>
 
-<!-- DUAL JavaScript - Clean Print Window + Direct Download -->
+<!-- PNG Download + Clean Print JavaScript -->
 <script>
+function downloadAsPNG() {
+    const svgElement = document.querySelector('.tif-certificate-content svg');
+    if (!svgElement) {
+        alert('Sertifikat tapılmadı.');
+        return;
+    }
+    
+    // SVG-ni PNG-yə çevir
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // SVG ölçülərini götür
+    const svgWidth = svgElement.viewBox.baseVal.width || 842;
+    const svgHeight = svgElement.viewBox.baseVal.height || 600;
+    
+    // Canvas ölçüsünü set et (yüksək keyfiyyət üçün 2x)
+    const scale = 2;
+    canvas.width = svgWidth * scale;
+    canvas.height = svgHeight * scale;
+    canvas.style.width = svgWidth + 'px';
+    canvas.style.height = svgHeight + 'px';
+    
+    // Ağ background əlavə et
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // SVG-ni img elementinə load et
+    const img = new Image();
+    const certificateName = <?php echo json_encode(sanitize_file_name($name ?? "İanəçi")); ?>;
+    const certificateDate = <?php echo json_encode(date("Y-m-d")); ?>;
+    
+    img.onload = function() {
+        // Canvas-a çək (scaled)
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+        
+        // PNG olaraq download et
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = `TIF_Sertifikat_${certificateName}_${certificateDate}.png`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
+        }, 'image/png', 1.0);
+    };
+    
+    img.onerror = function() {
+        alert('PNG yaradılarkən xəta baş verdi. SVG-də xüsusi simvollar ola bilər.');
+    };
+    
+    // SVG data-sını base64-ə çevir və img-ə yüklə
+    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+    img.src = url;
+}
+
 function openCertificateWindow() {
-    // Sertifikat content götür və JavaScript-ə hazırla
+    // Sertifikat content götür
     const certificateElement = document.querySelector('.tif-certificate-content');
     if (!certificateElement) {
         alert('Sertifikat tapılmadı.');
@@ -311,12 +369,53 @@ function openCertificateWindow() {
         return;
     }
     
-    // SVG-ni string olaraq götür və təmizlə
-    const svgContent = svgElement.outerHTML;
+    // SVG-ni PNG-yə çevir və print et
+    convertSVGToPNGForPrint(svgElement);
+}
+
+function convertSVGToPNGForPrint(svgElement) {
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Print üçün yüksək keyfiyyət
+    const svgWidth = svgElement.viewBox.baseVal.width || 842;
+    const svgHeight = svgElement.viewBox.baseVal.height || 600;
+    const scale = 3; // Print üçün daha yüksək keyfiyyət
+    
+    canvas.width = svgWidth * scale;
+    canvas.height = svgHeight * scale;
+    
+    // Ağ background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    const img = new Image();
     const certificateName = <?php echo json_encode($name ?? "İanəçi"); ?>;
     const certificateDate = <?php echo json_encode(date("d.m.Y")); ?>;
     
-    // Yeni pəncərə aç
+    img.onload = function() {
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+        
+        // PNG data URL götür
+        const pngDataURL = canvas.toDataURL('image/png', 1.0);
+        
+        // Yeni pəncərədə göstər
+        openPrintWindow(pngDataURL, certificateName, certificateDate);
+    };
+    
+    img.onerror = function() {
+        // Fallback: SVG ilə göstər
+        openPrintWindowWithSVG(svgElement.outerHTML, certificateName, certificateDate);
+    };
+    
+    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+    img.src = url;
+}
+
+function openPrintWindow(imageDataURL, certificateName, certificateDate) {
     const newWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
     
     if (!newWindow) {
@@ -324,7 +423,6 @@ function openCertificateWindow() {
         return;
     }
     
-    // Clean HTML content
     const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
@@ -346,10 +444,11 @@ function openCertificateWindow() {
             display: inline-block;
             margin: 20px auto;
         }
-        .certificate-content svg {
+        .certificate-image {
             max-width: 100%;
             height: auto;
             display: block;
+            margin: 0 auto;
         }
         .actions {
             margin: 20px 0;
@@ -364,8 +463,6 @@ function openCertificateWindow() {
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
-            text-decoration: none;
-            display: inline-block;
         }
         .btn-print { background: #007bff; color: white; }
         .btn-close { background: #6c757d; color: white; }
@@ -384,9 +481,7 @@ function openCertificateWindow() {
 </head>
 <body>
     <div class="certificate-container">
-        <div class="certificate-content">
-            ${svgContent}
-        </div>
+        <img src="${imageDataURL}" alt="TIF Sertifikat" class="certificate-image">
     </div>
     
     <div class="actions">
@@ -404,11 +499,49 @@ function openCertificateWindow() {
 </body>
 </html>`;
     
-    // HTML-i yaz
     newWindow.document.write(htmlContent);
     newWindow.document.close();
+    newWindow.focus();
+}
+
+function openPrintWindowWithSVG(svgContent, certificateName, certificateDate) {
+    // Fallback: SVG ilə print (əgər PNG conversion uğursuz olsa)
+    const newWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
     
-    // Focus et
+    if (!newWindow) {
+        alert('Pop-up blocker aktivdir.');
+        return;
+    }
+    
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TIF İanə Sertifikatı - ${certificateName}</title>
+    <style>
+        body { margin: 0; padding: 20px; text-align: center; font-family: Arial, sans-serif; background: #f5f5f5; }
+        .certificate-container { background: white; padding: 20px; border-radius: 8px; display: inline-block; }
+        .certificate-content svg { max-width: 100%; height: auto; }
+        .actions { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 6px; }
+        .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-print { background: #007bff; color: white; }
+        .btn-close { background: #6c757d; color: white; }
+        @media print { .actions { display: none !important; } body { background: white; padding: 0; } .certificate-container { box-shadow: none; padding: 0; margin: 0; } }
+    </style>
+</head>
+<body>
+    <div class="certificate-container">
+        <div class="certificate-content">${svgContent}</div>
+    </div>
+    <div class="actions">
+        <button onclick="window.print()" class="btn btn-print">🖨️ Çap et</button>
+        <button onclick="window.close()" class="btn btn-close">❌ Bağla</button>
+    </div>
+</body>
+</html>`;
+    
+    newWindow.document.write(htmlContent);
+    newWindow.document.close();
     newWindow.focus();
 }
 
@@ -416,7 +549,6 @@ function openCertificateWindow() {
 document.addEventListener('DOMContentLoaded', function() {
     const certificateSection = document.querySelector('.tif-certificate-section');
     if (certificateSection) {
-        // 1 saniyə sonra smooth scroll
         setTimeout(function() {
             certificateSection.scrollIntoView({ 
                 behavior: 'smooth', 
