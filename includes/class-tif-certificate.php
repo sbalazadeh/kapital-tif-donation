@@ -1,8 +1,8 @@
 <?php
 /**
- * TIF Certificate Generator Class
+ * TIF Certificate Generator Class - Optimized for Simplified Usage
  * 
- * @since 2.2.0
+ * @since 2.3.0
  * @package Kapital_TIF_Donation
  */
 
@@ -21,22 +21,24 @@ class TIF_Certificate {
     }
     
     /**
-     * Initialize certificate templates configuration
+     * Initialize certificate templates configuration - Simplified
      */
     private function init_certificate_templates() {
         $this->certificate_templates = array(
             'tif' => array(
                 'name' => 'Təhsilin İnkişafı Fondu',
                 'template_file' => 'certificate-tif-template.svg',
+                'enabled' => true,
                 'placeholders' => array(
                     '{{CERTIFICATE_ID}}' => array(
                         'x' => '367.95',
                         'y' => '149.44',
-                        'prefix' => 'TIF-'
+                        'prefix' => 'S/N: TIF-'
                     ),
                     '{{NAME}}' => array(
                         'x' => '370.56',
-                        'y' => '415.2'
+                        'y' => '415.2',
+                        'text_anchor' => 'middle' // SVG text mərkəzləmə
                     ),
                     '{{AMOUNT}}' => array(
                         'x' => '184.22',
@@ -49,72 +51,35 @@ class TIF_Certificate {
                     )
                 )
             ),
-            'youth' => array(
+            // Digər template-ləri hal-hazırda deaktiv edek
+            'young_girls' => array(
                 'name' => 'Gənc qızların təhsilinə dəstək',
-                'template_file' => 'certificate-youth-template.svg',
-                'placeholders' => array(
-                    '{{CERTIFICATE_ID}}' => array(
-                        'x' => '367.95',
-                        'y' => '149.44',
-                        'prefix' => 'GQT-'
-                    ),
-                    '{{NAME}}' => array(
-                        'x' => '370.56',
-                        'y' => '415.2'
-                    ),
-                    '{{AMOUNT}}' => array(
-                        'x' => '184.22',
-                        'y' => '499.71',
-                        'suffix' => ' AZN'
-                    ),
-                    '{{DATE}}' => array(
-                        'x' => '299.6',
-                        'y' => '499.71'
-                    )
-                )
+                'template_file' => 'young-girls-certificate.svg',
+                'enabled' => false, // Deaktiv
+                'fallback' => 'tif' // TIF template-ini istifadə et
             ),
-            'sustainable' => array(
-                'name' => 'Təhsilin dayanıqlı inkişafına dəstək',
-                'template_file' => 'certificate-sustainable-template.svg',
-                'placeholders' => array(
-                    '{{CERTIFICATE_ID}}' => array(
-                        'x' => '367.95',
-                        'y' => '149.44',
-                        'prefix' => 'TDI-'
-                    ),
-                    '{{NAME}}' => array(
-                        'x' => '370.56',
-                        'y' => '415.2'
-                    ),
-                    '{{AMOUNT}}' => array(
-                        'x' => '184.22',
-                        'y' => '499.71',
-                        'suffix' => ' AZN'
-                    ),
-                    '{{DATE}}' => array(
-                        'x' => '299.6',
-                        'y' => '499.71'
-                    )
-                )
+            'sustainable_development' => array(
+                'name' => 'Qarabağ Təqaüd Proqramı',
+                'template_file' => 'sustainable-development-certificate.svg',
+                'enabled' => false, // Deaktiv
+                'fallback' => 'tif' // TIF template-ini istifadə et
             )
         );
     }
     
     /**
-     * Generate certificate for specific order
+     * Generate certificate for specific order - Simplified
      * 
      * @param int $order_id
      * @param string $certificate_type
      * @return string|false Generated SVG content or false on error
      */
     public function generate_certificate($order_id, $certificate_type = 'tif') {
-    error_log("TIF Certificate Debug - Order ID: $order_id, Type: $certificate_type");
+        error_log("TIF Certificate Debug - Order ID: $order_id, Type: $certificate_type");
+        
         try {
-            // Validate certificate type
-            if (!isset($this->certificate_templates[$certificate_type])) {
-                error_log("TIF Certificate: Invalid certificate type: {$certificate_type}");
-                return false;
-            }
+            // Validate and handle certificate type
+            $certificate_type = $this->validate_and_fix_certificate_type($certificate_type);
             
             // Get order data
             $order_data = $this->get_order_data($order_id);
@@ -145,7 +110,32 @@ class TIF_Certificate {
     }
     
     /**
-     * Get order data for certificate
+     * Validate certificate type and use fallback if needed
+     * 
+     * @param string $certificate_type
+     * @return string
+     */
+    private function validate_and_fix_certificate_type($certificate_type) {
+        // Əgər type mövcud deyilsə və ya deaktivdirsə
+        if (!isset($this->certificate_templates[$certificate_type])) {
+            error_log("TIF Certificate: Invalid certificate type: {$certificate_type}, using fallback");
+            return 'tif'; // Default fallback
+        }
+        
+        $template_config = $this->certificate_templates[$certificate_type];
+        
+        // Əgər template deaktivdirsə, fallback istifadə et
+        if (!($template_config['enabled'] ?? true)) {
+            $fallback = $template_config['fallback'] ?? 'tif';
+            error_log("TIF Certificate: Type {$certificate_type} disabled, using fallback: {$fallback}");
+            return $fallback;
+        }
+        
+        return $certificate_type;
+    }
+    
+    /**
+     * Get order data for certificate - Improved validation
      * 
      * @param int $order_id
      * @return array|false
@@ -162,11 +152,17 @@ class TIF_Certificate {
         $payment_date = get_post_meta($order_id, 'payment_date', true);
         $trans_id = get_post_meta($order_id, 'transactionId_local', true);
         
-        // Format data
+        // Validate required fields
+        if (empty($name) || empty($amount)) {
+            error_log("TIF Certificate: Missing required fields for order {$order_id}");
+            return false;
+        }
+        
+        // Format data with fallbacks
         return array(
             'order_id' => $order_id,
-            'name' => $name ? sanitize_text_field($name) : 'İanəçi',
-            'amount' => $amount ? number_format($amount, 0, ',', '.') : '0',
+            'name' => sanitize_text_field($name),
+            'amount' => number_format(floatval($amount), 0, ',', '.'),
             'date' => $payment_date ? date('d.m.Y', strtotime($payment_date)) : date('d.m.Y'),
             'transaction_id' => $trans_id ? $trans_id : $order_id,
             'certificate_number' => $this->generate_certificate_number($order_id)
@@ -174,7 +170,7 @@ class TIF_Certificate {
     }
     
     /**
-     * Load SVG template from file
+     * Load SVG template from file - Improved error handling
      * 
      * @param string $certificate_type
      * @return string|false
@@ -184,14 +180,21 @@ class TIF_Certificate {
         $template_file = TIF_DONATION_PLUGIN_DIR . 'templates/certificate/' . $template_config['template_file'];
         
         if (!file_exists($template_file)) {
+            error_log("TIF Certificate: Template file not found: {$template_file}");
             return false;
         }
         
-        return file_get_contents($template_file);
+        $content = file_get_contents($template_file);
+        if ($content === false) {
+            error_log("TIF Certificate: Could not read template file: {$template_file}");
+            return false;
+        }
+        
+        return $content;
     }
     
     /**
-     * Replace placeholders in SVG content
+     * Replace placeholders in SVG content - With name centering
      * 
      * @param string $svg_content
      * @param array $order_data
@@ -204,18 +207,81 @@ class TIF_Certificate {
         
         // Prepare replacement values
         $replacements = array(
-            '{{CERTIFICATE_ID}}' => $placeholders['{{CERTIFICATE_ID}}']['prefix'] . str_pad($order_data['certificate_number'], 5, '0', STR_PAD_LEFT),
+            '{{CERTIFICATE_ID}}' => $this->format_certificate_id($order_data['certificate_number'], $placeholders['{{CERTIFICATE_ID}}'] ?? array()),
             '{{NAME}}' => $order_data['name'],
-            '{{AMOUNT}}' => $order_data['amount'] . $placeholders['{{AMOUNT}}']['suffix'],
+            '{{AMOUNT}}' => $this->format_amount($order_data['amount'], $placeholders['{{AMOUNT}}'] ?? array()),
             '{{DATE}}' => $order_data['date']
         );
         
-        // Replace placeholders
+        // Replace placeholders with security
         foreach ($replacements as $placeholder => $value) {
-            $svg_content = str_replace($placeholder, esc_html($value), $svg_content);
+            $escaped_value = esc_html($value);
+            
+            // NAME üçün xüsusi işləmə - mərkəzləmə
+            if ($placeholder === '{{NAME}}') {
+                $svg_content = $this->replace_name_with_centering($svg_content, $escaped_value, $placeholders['{{NAME}}'] ?? array());
+            } else {
+                $svg_content = str_replace($placeholder, $escaped_value, $svg_content);
+            }
         }
         
         return $svg_content;
+    }
+    
+    /**
+     * Replace name placeholder with text centering
+     * 
+     * @param string $svg_content
+     * @param string $name
+     * @param array $config
+     * @return string
+     */
+    private function replace_name_with_centering($svg_content, $name, $config) {
+        // Mövcud {{NAME}} placeholder-ini tap
+        $pattern = '/(<text[^>]*>)\{\{NAME\}\}(<\/text>)/i';
+        
+        if (preg_match($pattern, $svg_content, $matches)) {
+            $opening_tag = $matches[1];
+            $closing_tag = $matches[2];
+            
+            // text-anchor="middle" əlavə et əgər yoxdursa
+            if (strpos($opening_tag, 'text-anchor') === false) {
+                $opening_tag = str_replace('>', ' text-anchor="middle">', $opening_tag);
+            }
+            
+            // Replace et
+            $replacement = $opening_tag . $name . $closing_tag;
+            $svg_content = preg_replace($pattern, $replacement, $svg_content);
+        } else {
+            // Əgər pattern tapılmasa, sadə replace et
+            $svg_content = str_replace('{{NAME}}', $name, $svg_content);
+        }
+        
+        return $svg_content;
+    }
+    
+    /**
+     * Format certificate ID with prefix
+     * 
+     * @param string $number
+     * @param array $config
+     * @return string
+     */
+    private function format_certificate_id($number, $config) {
+        $prefix = $config['prefix'] ?? '';
+        return $prefix . str_pad($number, 5, '0', STR_PAD_LEFT);
+    }
+    
+    /**
+     * Format amount with suffix
+     * 
+     * @param string $amount
+     * @param array $config
+     * @return string
+     */
+    private function format_amount($amount, $config) {
+        $suffix = $config['suffix'] ?? '';
+        return $amount . $suffix;
     }
     
     /**
@@ -225,45 +291,45 @@ class TIF_Certificate {
      * @return string
      */
     private function generate_certificate_number($order_id) {
-        // Use order ID as base, you can customize this logic
         return str_pad($order_id, 5, '0', STR_PAD_LEFT);
     }
     
     /**
-     * Check if certificate is enabled for order
+     * Check if certificate is enabled for order - Simplified
      * 
      * @param int $order_id
      * @return bool
      */
     public function is_certificate_enabled($order_id) {
         // Check global setting
-        $enabled = isset($this->config['certificate']['enabled']) ? $this->config['certificate']['enabled'] : true;
+        $enabled = $this->config['certificate']['enabled'] ?? true;
         
         if (!$enabled) {
             return false;
         }
         
-        // Check order status
+        // Check order status - more flexible
         $order_status = get_post_meta($order_id, 'payment_status', true);
+        $valid_statuses = array('completed', 'success', 'FullyPaid', 'Completed');
         
-        return $order_status === 'success';
+        return in_array($order_status, $valid_statuses);
     }
     
     /**
-     * Get certificate download URL
+     * Get certificate download URL - Simplified
      * 
      * @param int $order_id
-     * @param string $certificate_type
+     * @param string $type
      * @return string
      */
-        public function get_download_url($order_id, $type = 'tif') {
-            return add_query_arg(array(
-                'action' => 'tif_download_certificate',
-                'order_id' => $order_id,
-                'type' => $type,
-                'nonce' => wp_create_nonce('tif_download_' . $order_id)
-            ), admin_url('admin-ajax.php'));
-        }
+    public function get_download_url($order_id, $type = 'tif') {
+        return add_query_arg(array(
+            'action' => 'tif_download_certificate',
+            'order_id' => $order_id,
+            'type' => $type,
+            'nonce' => wp_create_nonce('tif_download_' . $order_id)
+        ), admin_url('admin-ajax.php'));
+    }
     
     /**
      * Log certificate generation
@@ -272,7 +338,7 @@ class TIF_Certificate {
      * @param string $certificate_type
      */
     private function log_certificate_generation($order_id, $certificate_type) {
-        if (isset($this->config['debug']['log_certificate']) && $this->config['debug']['log_certificate']) {
+        if ($this->config['debug']['log_certificate'] ?? false) {
             $log_message = sprintf(
                 "Certificate generated - Order: %d, Type: %s, Time: %s",
                 $order_id,
@@ -285,7 +351,7 @@ class TIF_Certificate {
     }
     
     /**
-     * Get available certificate types
+     * Get available certificate types - Only enabled ones
      * 
      * @return array
      */
@@ -293,27 +359,46 @@ class TIF_Certificate {
         $types = array();
         
         foreach ($this->certificate_templates as $key => $template) {
-            $types[$key] = $template['name'];
+            if ($template['enabled'] ?? true) {
+                $types[$key] = $template['name'];
+            }
         }
         
         return $types;
     }
     
     /**
-     * Validate certificate data
+     * Get certificate type based on iane_tesnifati - Simplified mapping
      * 
-     * @param array $order_data
-     * @return bool
+     * @param string $iane_tesnifati
+     * @return string
      */
-    private function validate_certificate_data($order_data) {
-        $required_fields = array('name', 'amount', 'date');
+    public function get_certificate_type_by_iane($iane_tesnifati) {
+        $mapping = array(
+            'qtdl' => 'young_girls',
+            'qtp' => 'sustainable_development',
+            'tifiane' => 'tif'
+        );
         
-        foreach ($required_fields as $field) {
-            if (empty($order_data[$field])) {
-                return false;
-            }
-        }
+        $type = $mapping[$iane_tesnifati] ?? 'tif';
         
-        return true;
+        // Validate and use fallback if needed
+        return $this->validate_and_fix_certificate_type($type);
+    }
+    
+    /**
+     * Quick certificate generation for thank you page
+     * 
+     * @param int $order_id
+     * @return string|false
+     */
+    public function generate_certificate_for_thank_you($order_id) {
+        // Get iane_tesnifati to determine certificate type
+        $iane_tesnifati = get_post_meta($order_id, 'iane_tesnifati', true);
+        $certificate_type = $this->get_certificate_type_by_iane($iane_tesnifati);
+        
+        error_log("TIF Certificate: Thank you page generation - Order: {$order_id}, Iane: {$iane_tesnifati}, Type: {$certificate_type}");
+        
+        return $this->generate_certificate($order_id, $certificate_type);
     }
 }
