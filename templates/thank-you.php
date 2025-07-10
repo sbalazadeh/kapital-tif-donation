@@ -128,12 +128,19 @@ if (class_exists('TIF_Certificate')) {
             </div>
         </div>
 
-        <!-- SIMPLIFIED Actions - Only Print Button -->
+        <!-- DUAL Actions - Download + Clean Print -->
         <div class="tif-certificate-actions">
-            <button type="button" onclick="printCertificate()" class="btn btn-primary">
+            <button type="button" onclick="openCertificateWindow()" class="btn btn-primary">
                 <i class="fas fa-print"></i>
-                <?php _e('Çap et / PDF olaraq saxla', 'kapital-tif-donation'); ?>
+                <?php _e('Çap et', 'kapital-tif-donation'); ?>
             </button>
+            
+            <a href="data:image/svg+xml;base64,<?php echo base64_encode($certificate_svg); ?>" 
+               download="TIF_Sertifikat_<?php echo esc_attr(sanitize_file_name($name)); ?>_<?php echo date('Y-m-d'); ?>.svg" 
+               class="btn btn-success">
+                <i class="fas fa-download"></i>
+                <?php _e('SVG yüklə', 'kapital-tif-donation'); ?>
+            </a>
         </div>
 
         <!-- Certificate Type Info -->
@@ -287,11 +294,108 @@ if (class_exists('TIF_Certificate')) {
 }
 </style>
 
-<!-- SIMPLIFIED JavaScript - Only Print Function -->
+<!-- DUAL JavaScript - Clean Print Window + Direct Download -->
 <script>
-function printCertificate() {
-    // Browser-in öz print dialog-unu aç
-    window.print();
+function openCertificateWindow() {
+    // Yalnız sertifikat məzmununu götür
+    const certificateContent = document.querySelector('.tif-certificate-content').innerHTML;
+    const certificateName = '<?php echo esc_js($name ?? "İanəçi"); ?>';
+    const certificateDate = '<?php echo esc_js(date("d.m.Y")); ?>';
+    
+    // Yeni pəncərə aç
+    const newWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
+    
+    if (!newWindow) {
+        alert('Pop-up blocker aktivdir. Zəhmət olmasa icazə verin.');
+        return;
+    }
+    
+    // Clean HTML yaradıb yaz
+    newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>TIF İanə Sertifikatı - ${certificateName}</title>
+            <style>
+                body {
+                    margin: 0;
+                    padding: 20px;
+                    text-align: center;
+                    font-family: Arial, sans-serif;
+                    background: #f5f5f5;
+                }
+                .certificate-container {
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    display: inline-block;
+                    margin: 20px auto;
+                }
+                .certificate-content svg {
+                    max-width: 100%;
+                    height: auto;
+                    display: block;
+                }
+                .actions {
+                    margin: 20px 0;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 6px;
+                }
+                .btn {
+                    padding: 10px 20px;
+                    margin: 5px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    text-decoration: none;
+                    display: inline-block;
+                }
+                .btn-print { background: #007bff; color: white; }
+                .btn-close { background: #6c757d; color: white; }
+                .btn:hover { opacity: 0.8; }
+                @media print {
+                    .actions { display: none !important; }
+                    body { background: white; padding: 0; }
+                    .certificate-container { 
+                        box-shadow: none; 
+                        padding: 0; 
+                        margin: 0;
+                        background: transparent;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="certificate-container">
+                <div class="certificate-content">
+                    ${certificateContent}
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button onclick="window.print()" class="btn btn-print">
+                    🖨️ Çap et / PDF saxla
+                </button>
+                <button onclick="window.close()" class="btn btn-close">
+                    ❌ Bağla
+                </button>
+            </div>
+            
+            <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                Sertifikat: ${certificateName} - ${certificateDate}
+            </p>
+        </body>
+        </html>
+    `);
+    
+    newWindow.document.close();
+    
+    // Pəncərə açıldıqdan sonra focus et
+    newWindow.focus();
 }
 
 // Page load olduqda scroll certificate-a
