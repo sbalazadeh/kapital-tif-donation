@@ -51,18 +51,60 @@ class TIF_Certificate {
                     )
                 )
             ),
-            // Digər template-ləri hal-hazırda deaktiv edek
+            // Digər template-ləri aktivləşdiririk
             'young_girls' => array(
                 'name' => 'Gənc qızların təhsilinə dəstək',
                 'template_file' => 'young-girls-certificate.svg',
-                'enabled' => false, // Deaktiv
+                'enabled' => true,
                 'fallback' => 'tif' // TIF template-ini istifadə et
+                'placeholders' => array(
+                    '{{CERTIFICATE_ID}}' => array(
+                        'x' => '367.95',
+                        'y' => '149.44',
+                        'prefix' => 'S/N: TIF-'
+                    ),
+                    '{{NAME}}' => array(
+                        'x' => '370.56',
+                        'y' => '415.2',
+                        'text_anchor' => 'middle' // SVG text mərkəzləmə
+                    ),
+                    '{{AMOUNT}}' => array(
+                        'x' => '184.22',
+                        'y' => '499.71',
+                        'suffix' => ' AZN'
+                    ),
+                    '{{DATE}}' => array(
+                        'x' => '299.6',
+                        'y' => '499.71'
+                    )
+                )
             ),
             'sustainable_development' => array(
                 'name' => 'Qarabağ Təqaüd Proqramı',
                 'template_file' => 'sustainable-development-certificate.svg',
-                'enabled' => false, // Deaktiv
+                'enabled' => true,
                 'fallback' => 'tif' // TIF template-ini istifadə et
+                'placeholders' => array(
+                    '{{CERTIFICATE_ID}}' => array(
+                        'x' => '367.95',
+                        'y' => '149.44',
+                        'prefix' => 'S/N: TIF-'
+                    ),
+                    '{{NAME}}' => array(
+                        'x' => '370.56',
+                        'y' => '415.2',
+                        'text_anchor' => 'middle' // SVG text mərkəzləmə
+                    ),
+                    '{{AMOUNT}}' => array(
+                        'x' => '184.22',
+                        'y' => '499.71',
+                        'suffix' => ' AZN'
+                    ),
+                    '{{DATE}}' => array(
+                        'x' => '299.6',
+                        'y' => '499.71'
+                    )
+                )
             )
         );
     }
