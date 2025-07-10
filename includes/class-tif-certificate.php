@@ -55,8 +55,8 @@ class TIF_Certificate {
             'young_girls' => array(
                 'name' => 'Gənc qızların təhsilinə dəstək',
                 'template_file' => 'young-girls-certificate.svg',
-                'enabled' => false,
-                'fallback' => 'tif' // TIF template-ini istifadə et
+                'enabled' => true,
+                'fallback' => 'tif', // TIF template-ini istifadə et
                 'placeholders' => array(
                     '{{CERTIFICATE_ID}}' => array(
                         'x' => '367.95',
@@ -83,7 +83,7 @@ class TIF_Certificate {
                 'name' => 'Qarabağ Təqaüd Proqramı',
                 'template_file' => 'sustainable-development-certificate.svg',
                 'enabled' => true,
-                'fallback' => 'tif' // TIF template-ini istifadə et
+                'fallback' => 'tif', // TIF template-ini istifadə et
                 'placeholders' => array(
                     '{{CERTIFICATE_ID}}' => array(
                         'x' => '367.95',
