@@ -237,24 +237,36 @@ class TIF_Certificate {
      * @return string
      */
     private function replace_name_with_centering($svg_content, $name, $config) {
+        // SVG sertifikatın eni təxminən 842px, mərkəzi ~421px
+        $center_x = 421;
+        
         // Mövcud {{NAME}} placeholder-ini tap
-        $pattern = '/(<text[^>]*>)\{\{NAME\}\}(<\/text>)/i';
+        $pattern = '/(<text[^>]*?)(\s+x="[^"]*")?([^>]*>)\{\{NAME\}\}(<\/text>)/i';
         
         if (preg_match($pattern, $svg_content, $matches)) {
-            $opening_tag = $matches[1];
-            $closing_tag = $matches[2];
+            $tag_start = $matches[1];
+            $tag_middle = $matches[3];
+            $closing_tag = $matches[4];
+            
+            // Yeni x koordinatı və text-anchor əlavə et
+            $new_opening_tag = $tag_start . ' x="' . $center_x . '"';
             
             // text-anchor="middle" əlavə et əgər yoxdursa
-            if (strpos($opening_tag, 'text-anchor') === false) {
-                $opening_tag = str_replace('>', ' text-anchor="middle">', $opening_tag);
+            if (strpos($tag_middle, 'text-anchor') === false) {
+                $new_opening_tag .= ' text-anchor="middle"';
             }
             
+            $new_opening_tag .= $tag_middle;
+            
             // Replace et
-            $replacement = $opening_tag . $name . $closing_tag;
+            $replacement = $new_opening_tag . $name . $closing_tag;
             $svg_content = preg_replace($pattern, $replacement, $svg_content);
+            
+            error_log("TIF Certificate: Name centered with x={$center_x}");
         } else {
-            // Əgər pattern tapılmasa, sadə replace et
+            // Fallback: sadə replace
             $svg_content = str_replace('{{NAME}}', $name, $svg_content);
+            error_log("TIF Certificate: Name centering failed, using simple replace");
         }
         
         return $svg_content;
