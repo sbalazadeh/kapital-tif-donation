@@ -78,7 +78,7 @@ if (class_exists('TIF_Certificate')) {
     <!-- SIMPLIFIED Certificate Section -->
     <div class="tif-certificate-section">
         <div class="tif-certificate-header">
-            <h2><?php _e('İanə Sertifikatınız', 'kapital-tif-donation'); ?></h2>
+            <h2 style="color: #B9C294;"><?php _e('İanə Sertifikatınız', 'kapital-tif-donation'); ?></h2>
             <p><?php _e('İanənizə görə təşəkkür edirik. Sertifikatınızı aşağıda görə və çap edə bilərsiniz.', 'kapital-tif-donation'); ?></p>
         </div>
 
@@ -99,13 +99,13 @@ if (class_exists('TIF_Certificate')) {
 
         <!-- PNG Download + Clean Print -->
         <div class="tif-certificate-actions">
-            <button type="button" onclick="openCertificateWindow()" class="btn btn-primary">
-                <i class="fas fa-print"></i>
+            <button type="button" onclick="openCertificateWindow()" class="btn btn-success">
+                <i class="fa fa-print"></i>
                 <?php _e('Çap et', 'kapital-tif-donation'); ?>
             </button>
             
-            <button type="button" onclick="downloadAsPNG()" class="btn btn-success">
-                <i class="fas fa-download"></i>
+            <button type="button" onclick="downloadAsPNG()" class="btn btn-soft-success">
+                <i class="fa fa-download"></i>
                 <?php _e('PNG yüklə', 'kapital-tif-donation'); ?>
             </button>
         </div>
@@ -138,10 +138,10 @@ if (class_exists('TIF_Certificate')) {
     
     <!-- Navigation Actions -->
     <div class="tif-actions">
-        <a href="<?php echo esc_url(home_url('/donation/')); ?>" class="btn btn-outline-primary">
+        <a href="<?php echo esc_url(home_url('/donation/')); ?>" class="btn btn-soft-success">
             <?php _e('Yeni ianə et', 'kapital-tif-donation'); ?>
         </a>
-        <a href="<?php echo esc_url(home_url()); ?>" class="btn btn-primary">
+        <a href="<?php echo esc_url(home_url()); ?>" class="btn btn-success">
             <?php _e('Ana səhifəyə qayıt', 'kapital-tif-donation'); ?>
         </a>
     </div>
