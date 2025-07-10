@@ -138,13 +138,30 @@
     }
     
     /**
-     * Get order data
+     * Get order data - Updated for legal entities
      */
     private function get_order_data($order_id) {
+        // Get meta data
+        $name = get_post_meta($order_id, 'name', true);
+        $company = get_post_meta($order_id, 'company', true);
+        $company_name = get_post_meta($order_id, 'company_name', true);
+        $amount = get_post_meta($order_id, 'amount', true);
+        $payment_date = get_post_meta($order_id, 'payment_date', true);
+        
+        // Determine display name based on entity type
+        $display_name = $name; // Default to individual name
+        
+        if ($company === 'Hüquqi şəxs' && !empty($company_name)) {
+            $display_name = $company_name; // Use company name for legal entities
+        }
+        
         return array(
-            'name' => get_post_meta($order_id, 'name', true),
-            'amount' => get_post_meta($order_id, 'amount', true),
-            'date' => get_post_meta($order_id, 'payment_date', true)
+            'name' => $display_name, // This will be company name for legal entities
+            'amount' => $amount,
+            'date' => $payment_date,
+            'entity_type' => $company,
+            'original_name' => $name,
+            'company_name' => $company_name
         );
     }
     
