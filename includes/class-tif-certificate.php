@@ -28,7 +28,7 @@ class TIF_Certificate {
             'tif' => array(
                 'name' => 'Təhsilin İnkişafı Fondu',
                 'template_file' => 'certificate-tif-template.svg',
-                'enabled' => true,
+                'enabled' => false,
                 'placeholders' => array(
                     '{{CERTIFICATE_ID}}' => array(
                         'x' => '367.95',
@@ -55,7 +55,7 @@ class TIF_Certificate {
             'young_girls' => array(
                 'name' => 'Gənc qızların təhsilinə dəstək',
                 'template_file' => 'young-girls-certificate.svg',
-                'enabled' => true,
+                'enabled' => false,
                 'fallback' => 'tif' // TIF template-ini istifadə et
                 'placeholders' => array(
                     '{{CERTIFICATE_ID}}' => array(
