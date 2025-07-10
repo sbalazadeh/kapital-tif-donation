@@ -166,7 +166,7 @@
     }
     
     /**
-     * Generate filename for certificate
+     * Generate filename for certificate - Updated for legal entities
      */
     private function generate_filename($order_data, $type) {
         $type_names = array(
@@ -176,12 +176,22 @@
         );
         
         $type_name = $type_names[$type] ?? 'TIF';
-        $clean_name = $this->clean_filename($order_data['name'] ?? 'Ianeci');
+        
+        // Use appropriate name based on entity type
+        $name_for_file = $order_data['name'] ?? 'Ianeci'; // This already contains company name if legal entity
+        $clean_name = $this->clean_filename($name_for_file);
+        
+        // Add entity type indicator to filename if it's a legal entity
+        $entity_indicator = '';
+        if (isset($order_data['entity_type']) && $order_data['entity_type'] === 'Hüquqi şəxs') {
+            $entity_indicator = '_Huquqi';
+        }
         
         return sprintf(
-            '%s_Sertifikat_%s_%s.svg',
+            '%s_Sertifikat_%s%s_%s.svg',
             $type_name,
             $clean_name,
+            $entity_indicator,
             date('Y-m-d')
         );
     }
