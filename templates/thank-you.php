@@ -1,9 +1,8 @@
 <?php
 /**
- * Thank You Page Template
- * Updated Thank You Page Template with Certificate Section
+ * Thank You Page Template - SIMPLIFIED VERSION
+ * Sertifikat avtomatik generate olunur və çap button ilə print edilir
  */
-
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -14,13 +13,11 @@ if (!defined('ABSPATH')) {
 error_log('Thank You Page Debug:');
 error_log('Order ID: ' . $order_id);
 error_log('Status: ' . $status);
-error_log('Request: ' . print_r($_REQUEST, true));
 
 // Test mode üçün nonce yoxlamasını keç
 $is_test_mode = isset($_GET['test_mode']) || (strpos(get_post_meta($order_id, 'transactionId_local', true), 'TEST-') === 0);
 
 if ($is_test_mode) {
-    // Test mode - nonce yoxlama
     error_log('Test mode aktiv');
 }
 
@@ -41,33 +38,36 @@ if (empty($date)) {
     }
 }
 
-// Check if certificate is enabled and available
+// Certificate generation - SIMPLIFIED
 $certificate_enabled = false;
-$certificate_type = 'tif'; // default
+$certificate_svg = '';
+$certificate_error = '';
 
 if (class_exists('TIF_Certificate')) {
-    // Config-i yüklə
-    $config_file = TIF_DONATION_CONFIG_DIR . 'config.php';
-    if (file_exists($config_file)) {
-        $config = require $config_file;
-    }
-    
-    $certificate_generator = new TIF_Certificate($config);
-    $certificate_enabled = $certificate_generator->is_certificate_enabled($order_id);
-    
-    // Determine certificate type based on iane_tesnifati
-    if (!empty($iane_tesnifati)) {
-        switch ($iane_tesnifati) {
-            case 'qtdl':
-                $certificate_type = 'young_girls';
-                break;
-            case 'qtp':
-                $certificate_type = 'sustainable_development';
-                break;
-            default:
-                $certificate_type = 'tif';
-                break;
+    try {
+        // Config-i yüklə
+        $config_file = TIF_DONATION_CONFIG_DIR . 'config.php';
+        if (file_exists($config_file)) {
+            $config = require $config_file;
+            
+            $certificate_generator = new TIF_Certificate($config);
+            $certificate_enabled = $certificate_generator->is_certificate_enabled($order_id);
+            
+            if ($certificate_enabled) {
+                // Avtomatik sertifikat generation
+                $certificate_svg = $certificate_generator->generate_certificate_for_thank_you($order_id);
+                
+                if ($certificate_svg) {
+                    error_log("TIF Certificate: Auto-generated for thank you page - Order: {$order_id}");
+                } else {
+                    $certificate_error = 'Sertifikat yaradıla bilmədi.';
+                    error_log("TIF Certificate: Generation failed for order: {$order_id}");
+                }
+            }
         }
+    } catch (Exception $e) {
+        $certificate_error = 'Sertifikat xətası: ' . $e->getMessage();
+        error_log("TIF Certificate Error: " . $e->getMessage());
     }
 }
 ?>
@@ -88,6 +88,7 @@ if (class_exists('TIF_Certificate')) {
     </div>
     <?php endif; ?>
     
+    <!-- Order Details -->
     <div class="tif-order-details">
         <?php if (!empty($name)): ?>
         <p><strong><?php _e('Ad və soyad:', 'kapital-tif-donation'); ?></strong> <?php echo esc_html($name); ?></p>
@@ -104,73 +105,64 @@ if (class_exists('TIF_Certificate')) {
         <p><strong><?php _e('Tarix:', 'kapital-tif-donation'); ?></strong> <?php echo esc_html($date); ?></p>
     </div>
 
-    <?php //if ($certificate_enabled && $status === 'success'):
-    if (($status === 'success' || $status === 'completed')): ?>
-    <!-- Certificate Section -->
+    <?php if (($status === 'success' || $status === 'completed') && $certificate_enabled): ?>
+    <!-- SIMPLIFIED Certificate Section -->
     <div class="tif-certificate-section">
         <div class="tif-certificate-header">
             <h2><?php _e('İanə Sertifikatınız', 'kapital-tif-donation'); ?></h2>
-            <p><?php _e('İanənizə görə təşəkkür edirik. Aşağıdakı sertifikatı yükləyə və çap edə bilərsiniz.', 'kapital-tif-donation'); ?></p>
+            <p><?php _e('İanənizə görə təşəkkür edirik. Sertifikatınızı aşağıda görə və çap edə bilərsiniz.', 'kapital-tif-donation'); ?></p>
         </div>
 
-        <div class="tif-certificate-preview" id="tif-certificate-preview">
-            <div class="tif-certificate-placeholder">
-                <div class="tif-loading-spinner" style="display: none;">
-                    <div class="spinner"></div>
-                    <p><?php _e('Sertifikat hazırlanır...', 'kapital-tif-donation'); ?></p>
-                </div>
-                <div class="tif-preview-content">
-                    <!-- SVG content will be loaded here -->
-                    <p class="tif-preview-text"><?php _e('Sertifikatı görmək üçün "Önizləmə" düyməsini basın', 'kapital-tif-donation'); ?></p>
-                </div>
+        <?php if (!empty($certificate_error)): ?>
+        <!-- Certificate Error -->
+        <div class="tif-certificate-error alert alert-danger">
+            <p><strong><?php _e('Xəta:', 'kapital-tif-donation'); ?></strong> <?php echo esc_html($certificate_error); ?></p>
+            <p><?php _e('Zəhmət olmasa daha sonra yenidən cəhd edin və ya bizimlə əlaqə saxlayın.', 'kapital-tif-donation'); ?></p>
+        </div>
+        
+        <?php elseif (!empty($certificate_svg)): ?>
+        <!-- Certificate Display - DIRECT SVG OUTPUT -->
+        <div class="tif-certificate-display" id="tif-certificate-display">
+            <div class="tif-certificate-content">
+                <?php echo $certificate_svg; ?>
             </div>
         </div>
 
+        <!-- SIMPLIFIED Actions - Only Print Button -->
         <div class="tif-certificate-actions">
-            <button type="button" id="tif-preview-certificate" class="btn btn-outline-primary" 
-                    data-order-id="<?php echo esc_attr($order_id); ?>" 
-                    data-certificate-type="<?php echo esc_attr($certificate_type); ?>">
-                <i class="fas fa-eye"></i>
-                <?php _e('Önizləmə', 'kapital-tif-donation'); ?>
-            </button>
-            
-            <a href="<?php echo esc_url($certificate_generator->get_download_url($order_id, $certificate_type)); ?>" 
-               class="btn btn-success" id="tif-download-certificate">
-                <i class="fas fa-download"></i>
-                <?php _e('Yüklə', 'kapital-tif-donation'); ?>
-            </a>
-            
-            <button type="button" id="tif-print-certificate" class="btn btn-secondary" style="display: none;">
+            <button type="button" onclick="printCertificate()" class="btn btn-primary">
                 <i class="fas fa-print"></i>
-                <?php _e('Çap et', 'kapital-tif-donation'); ?>
+                <?php _e('Çap et / PDF olaraq saxla', 'kapital-tif-donation'); ?>
             </button>
         </div>
 
-        <!-- Certificate Type Selection (if multiple available) -->
+        <!-- Certificate Type Info -->
         <?php if (!empty($iane_tesnifati)): ?>
         <div class="tif-certificate-type-info">
             <p class="tif-certificate-type-label">
                 <strong><?php _e('Sertifikat növü:', 'kapital-tif-donation'); ?></strong>
                 <?php
                 $type_names = array(
-                    'tif' => __('Təhsilin İnkişafı Fondu', 'kapital-tif-donation'),
-                    'young_girls' => __('Gənc Qızların Təhsilinə Dəstək', 'kapital-tif-donation'),
-                    'sustainable_development' => __('Qarabağ Təqaüd Proqramı', 'kapital-tif-donation')
+                    'tifiane' => __('Təhsilin İnkişafı Fondu', 'kapital-tif-donation'),
+                    'qtdl' => __('Gənc Qızların Təhsilinə Dəstək', 'kapital-tif-donation'),
+                    'qtp' => __('Qarabağ Təqaüd Proqramı', 'kapital-tif-donation')
                 );
-                echo esc_html($type_names[$certificate_type] ?? $type_names['tif']);
+                echo esc_html($type_names[$iane_tesnifati] ?? $type_names['tifiane']);
                 ?>
             </p>
         </div>
         <?php endif; ?>
-
-        <!-- Error/Success Messages -->
-        <div class="tif-certificate-messages" style="display: none;">
-            <div class="tif-certificate-error alert alert-danger" style="display: none;"></div>
-            <div class="tif-certificate-success alert alert-success" style="display: none;"></div>
+        
+        <?php else: ?>
+        <!-- No Certificate Available -->
+        <div class="tif-certificate-not-available">
+            <p><?php _e('Sertifikat hazırlanır, zəhmət olmasa bir az gözləyin.', 'kapital-tif-donation'); ?></p>
         </div>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
     
+    <!-- Navigation Actions -->
     <div class="tif-actions">
         <a href="<?php echo esc_url(home_url('/donation/')); ?>" class="btn btn-outline-primary">
             <?php _e('Yeni ianə et', 'kapital-tif-donation'); ?>
@@ -181,32 +173,138 @@ if (class_exists('TIF_Certificate')) {
     </div>
 </div>
 
-<!-- Certificate CSS -->
-<link rel="stylesheet" href="<?php echo TIF_DONATION_ASSETS_URL; ?>css/certificate.css?v=<?php echo TIF_DONATION_VERSION; ?>">
+<!-- SIMPLIFIED Certificate CSS - Only essential styles -->
+<style>
+/* Certificate Section */
+.tif-certificate-section {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 30px;
+    margin: 30px 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 2px solid #e9ecef;
+}
 
-<!-- jQuery (WordPress AJAX üçün) -->
-<?php wp_print_scripts('jquery'); ?>
+.tif-certificate-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e9ecef;
+}
 
-<!-- AJAX Configuration -->
+.tif-certificate-header h2 {
+    color: #28a745;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.tif-certificate-header h2::before {
+    content: "🏆";
+    font-size: 1.5rem;
+    margin-right: 10px;
+}
+
+/* Certificate Display */
+.tif-certificate-display {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.tif-certificate-content svg {
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    background: white;
+}
+
+/* Actions */
+.tif-certificate-actions {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.tif-certificate-actions .btn {
+    padding: 12px 24px;
+    font-size: 1.1rem;
+    border-radius: 6px;
+    margin: 10px;
+}
+
+.tif-certificate-type-info {
+    text-align: center;
+    margin-top: 15px;
+    padding: 10px;
+    background: #e8f5e8;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+/* Error Styles */
+.tif-certificate-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+/* Print Styles */
+@media print {
+    .tif-certificate-section {
+        box-shadow: none;
+        border: none;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .tif-certificate-actions,
+    .tif-certificate-header p,
+    .tif-certificate-type-info,
+    .tif-actions {
+        display: none !important;
+    }
+    
+    .tif-certificate-display {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .tif-certificate-content svg {
+        box-shadow: none;
+        border-radius: 0;
+        max-width: 100%;
+        height: auto;
+    }
+}
+</style>
+
+<!-- SIMPLIFIED JavaScript - Only Print Function -->
 <script>
-window.ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
-var tif_certificate_ajax = {
-    ajax_url: window.ajaxurl,
-    nonce: '<?php echo wp_create_nonce('tif_preview_certificate'); ?>',
-    download_nonce: '<?php echo wp_create_nonce('tif_download_' . $order_id); ?>',
-    order_id: '<?php echo $order_id; ?>'
-};
-</script>
+function printCertificate() {
+    // Browser-in öz print dialog-unu aç
+    window.print();
+}
 
-<!-- Certificate JavaScript -->
-<script src="<?php echo TIF_DONATION_ASSETS_URL; ?>js/certificate.js?v=<?php echo TIF_DONATION_VERSION; ?>"></script>
-
-<?php if (($status === 'success' || $status === 'completed')): ?>
-<script type="text/javascript">
+// Page load olduqda scroll certificate-a
 document.addEventListener('DOMContentLoaded', function() {
-    if (typeof TIFCertificate !== 'undefined') {
-        TIFCertificate.init();
+    const certificateSection = document.querySelector('.tif-certificate-section');
+    if (certificateSection) {
+        // 1 saniyə sonra smooth scroll
+        setTimeout(function() {
+            certificateSection.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+        }, 1000);
     }
 });
 </script>
-<?php endif; ?>
