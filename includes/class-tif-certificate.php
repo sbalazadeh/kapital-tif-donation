@@ -177,7 +177,7 @@ class TIF_Certificate {
     }
     
     /**
-     * Get order data for certificate - Improved validation
+     * Get order data for certificate - Updated for legal entities
      * 
      * @param int $order_id
      * @return array|false
@@ -190,12 +190,22 @@ class TIF_Certificate {
         
         // Get meta data
         $name = get_post_meta($order_id, 'name', true);
+        $company = get_post_meta($order_id, 'company', true);
+        $company_name = get_post_meta($order_id, 'company_name', true);
         $amount = get_post_meta($order_id, 'amount', true);
         $payment_date = get_post_meta($order_id, 'payment_date', true);
         $trans_id = get_post_meta($order_id, 'transactionId_local', true);
         
+        // Determine display name based on entity type
+        $display_name = $name; // Default to individual name
+        
+        if ($company === 'Hüquqi şəxs' && !empty($company_name)) {
+            $display_name = $company_name; // Use company name for legal entities
+            error_log("TIF Certificate: Using company name for certificate: " . $company_name);
+        }
+        
         // Validate required fields
-        if (empty($name) || empty($amount)) {
+        if (empty($display_name) || empty($amount)) {
             error_log("TIF Certificate: Missing required fields for order {$order_id}");
             return false;
         }
@@ -203,11 +213,15 @@ class TIF_Certificate {
         // Format data with fallbacks
         return array(
             'order_id' => $order_id,
-            'name' => sanitize_text_field($name),
+            'name' => sanitize_text_field($display_name), // This will now be company name for legal entities
             'amount' => number_format(floatval($amount), 0, ',', '.'),
             'date' => $payment_date ? date('d.m.Y', strtotime($payment_date)) : date('d.m.Y'),
             'transaction_id' => $trans_id ? $trans_id : $order_id,
-            'certificate_number' => $this->generate_certificate_number($order_id)
+            'certificate_number' => $this->generate_certificate_number($order_id),
+            // Store additional metadata for reference
+            'entity_type' => $company,
+            'original_name' => $name,
+            'company_name' => $company_name
         );
     }
     
