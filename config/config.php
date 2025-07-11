@@ -90,10 +90,12 @@ return array(
     'security' => array(
         'ssl_verify' => true, // SSL aktivləşdirildi
         'nonce_actions' => array(
-            'donation_details' => 'tif_donation_details',
-            'transaction_details' => 'tif_transaction_details',
-            'sync_status' => 'tif_sync_status_nonce',
-            'export_donations' => 'tif_export_donations_nonce',
+        'form_submission' => 'tif_donation_submit_action',
+        'donation_details' => 'tif_donation_details_action',
+        'transaction_details' => 'tif_transaction_details_action',
+        'certificate_details' => 'tif_certificate_details_action', // YENİ
+        'export_donations' => 'tif_export_donations_action',
+        'bulk_actions' => 'tif_bulk_actions'
         ),
     ),
     
