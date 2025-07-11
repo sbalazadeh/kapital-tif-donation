@@ -159,8 +159,39 @@ function downloadAsPNG() {
         return;
     }
     
-    // SVG-ni PNG-yə çevir
+    // DM Sans fontunu preload et
+    const dmSans = new FontFace('DM Sans', 'url(https://fonts.gstatic.com/s/dmsans/v13/rP2tp2ywxg089UriCZ2IHSeH.woff2)', {
+        weight: '600 800',
+        style: 'normal'
+    });
+    
+    dmSans.load().then(() => {
+        document.fonts.add(dmSans);
+        processSVGWithFont(svgElement);
+    }).catch(() => {
+        // Fallback to current method
+        processSVGWithFont(svgElement);
+    });
+}
+
+function processSVGWithFont(svgElement) {
+    // SVG-ə embedded font styles əlavə et
     const svgData = new XMLSerializer().serializeToString(svgElement);
+    const fontEmbeddedSVG = `
+        <svg viewBox="0 0 842 600" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@600;800&display=swap');
+                    * {
+                        font-family: 'DM Sans', Arial, sans-serif !important;
+                    }
+                </style>
+            </defs>
+            ${svgData.replace('<svg', '<g').replace('</svg>', '</g>')}
+        </svg>
+    `;
+    
+    // Canvas yaradılması
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
@@ -183,39 +214,41 @@ function downloadAsPNG() {
     const img = new Image();
     const certificateName = <?php echo json_encode(sanitize_file_name($name ?? "İanəçi")); ?>;
     const certificateDate = <?php echo json_encode(date("Y-m-d")); ?>;
-    const orderId = <?php echo $order_id; ?>; // Order ID əlavə edildi
+    const orderId = <?php echo $order_id; ?>;
     
     img.onload = function() {
-        // Canvas-a çək (scaled)
-        ctx.scale(scale, scale);
-        ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
-        
-        // PNG olaraq download et
-        canvas.toBlob(function(blob) {
-            const filename = `TIF_Sertifikat_${certificateName}_${certificateDate}.png`;
+        // Font render etmək üçün kısa gözləmə
+        setTimeout(() => {
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
             
-            // 1. Client-side download (mövcud)
-            const url = URL.createObjectURL(blob);
-            const downloadLink = document.createElement('a');
-            downloadLink.href = url;
-            downloadLink.download = filename;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-            URL.revokeObjectURL(url);
-            
-            // 2. Server-də save et (YENİ ƏLAVƏ)
-            savePNGToServer(blob, orderId, certificateName);
-            
-        }, 'image/png', 1.0);
+            // PNG olaraq download et
+            canvas.toBlob(function(blob) {
+                const filename = `TIF_Sertifikat_${certificateName}_${certificateDate}.png`;
+                
+                // 1. Client-side download
+                const url = URL.createObjectURL(blob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = url;
+                downloadLink.download = filename;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(url);
+                
+                // 2. Server-də save et
+                savePNGToServer(blob, orderId, certificateName);
+                
+            }, 'image/png', 1.0);
+        }, 100); // Font yüklənməsi üçün 100ms gözləmə
     };
     
     img.onerror = function() {
         alert('PNG yaradılarkən xəta baş verdi. SVG-də xüsusi simvollar ola bilər.');
     };
     
-    // SVG data-sını base64-ə çevir və img-ə yüklə
-    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+    // Font-embedded SVG-ni yüklə
+    const svgBlob = new Blob([fontEmbeddedSVG], {type: 'image/svg+xml;charset=utf-8'});
     const url = URL.createObjectURL(svgBlob);
     img.src = url;
 }
