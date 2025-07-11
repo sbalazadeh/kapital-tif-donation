@@ -818,7 +818,7 @@ class TIF_Admin {
                 }
             });
             
-            // PNG generation handler
+            // PNG generation handler - BROWSER BASED (Thank You page metodu)
             $('#tif-generate-png').on('click', function(e) {
                 e.preventDefault();
                 
@@ -830,45 +830,32 @@ class TIF_Admin {
                 // Show loading state
                 button.prop('disabled', true);
                 button.html('<span>⏳</span> Hazırlanır...');
-                statusDiv.show().find('p').text('Sertifikat PNG formatına çevrilir...');
+                statusDiv.show().find('p').text('SVG sertifikat yüklənir...');
                 
-                // AJAX request for PNG generation
+                // SVG generate edək (mövcud AJAX handler ilə)
                 $.ajax({
                     url: ajaxurl,
                     method: 'POST',
                     data: {
-                        action: 'tif_generate_certificate_png',
+                        action: 'tif_preview_certificate',
                         order_id: orderId,
-                        certificate_type: certificateType,
-                        nonce: '<?php echo wp_create_nonce("tif_certificate_png"); ?>'
+                        type: certificateType,
+                        nonce: '<?php echo wp_create_nonce("tif_preview_certificate"); ?>'
                     },
                     timeout: 30000,
                     success: function(response) {
-                        if (response.success && response.data.download_url) {
-                            statusDiv.find('p').html('<span style="color: #00a32a;">✓ Uğurlu! PNG yüklənir...</span>');
+                        if (response.success && response.data.svg) {
+                            statusDiv.find('p').text('PNG formatına çevrilir...');
                             
-                            // Auto download
-                            const link = document.createElement('a');
-                            link.href = response.data.download_url;
-                            link.download = 'sertifikat-' + orderId + '.png';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            
-                            // Success state
-                            button.html('<span>✅</span> Yükləndi');
-                            setTimeout(() => {
-                                button.prop('disabled', false);
-                                button.html('<span>📥</span> PNG Yüklə');
-                                statusDiv.hide();
-                            }, 3000);
+                            // SVG-ni PNG-yə çevir və download et (browser-based)
+                            convertSVGToPNGAndDownload(response.data.svg, orderId, button, statusDiv);
                             
                         } else {
-                            throw new Error(response.data?.message || 'PNG yaradıla bilmədi');
+                            throw new Error(response.data?.message || 'SVG əldə edilə bilmədi');
                         }
                     },
                     error: function(xhr, status, error) {
-                        console.error('PNG Generation Error:', error);
+                        console.error('SVG Generation Error:', error);
                         statusDiv.find('p').html('<span style="color: #d63638;">✗ Xəta: ' + (error || 'Naməlum xəta') + '</span>');
                         
                         button.prop('disabled', false);
@@ -880,6 +867,99 @@ class TIF_Admin {
                     }
                 });
             });
+            
+            // Browser-based SVG to PNG conversion (Thank You page metodundan)
+            function convertSVGToPNGAndDownload(svgString, orderId, button, statusDiv) {
+                try {
+                    // SVG-ni DOM elementinə çevir
+                    const parser = new DOMParser();
+                    const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
+                    const svgElement = svgDoc.querySelector('svg');
+                    
+                    if (!svgElement) {
+                        throw new Error('SVG element tapılmadı');
+                    }
+                    
+                    // SVG viewBox və ölçüləri götür
+                    const viewBox = svgElement.viewBox.baseVal;
+                    const svgWidth = viewBox ? viewBox.width : (svgElement.width?.baseVal?.value || 842);
+                    const svgHeight = viewBox ? viewBox.height : (svgElement.height?.baseVal?.value || 600);
+                    
+                    // Canvas yarat (yüksək keyfiyyət üçün 3x scale)
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const scale = 3;
+                    
+                    canvas.width = svgWidth * scale;
+                    canvas.height = svgHeight * scale;
+                    
+                    // Ağ background əlavə et
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // SVG-ni Image elementinə yüklə
+                    const img = new Image();
+                    
+                    img.onload = function() {
+                        // Canvas-a çək
+                        ctx.scale(scale, scale);
+                        ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+                        
+                        // PNG-yə çevir və download et
+                        canvas.toBlob(function(blob) {
+                            // Filename yarat
+                            const timestamp = new Date().toISOString().split('T')[0];
+                            const filename = `TIF_Sertifikat_Admin_${orderId}_${timestamp}.png`;
+                            
+                            // Download link yarat
+                            const url = URL.createObjectURL(blob);
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = url;
+                            downloadLink.download = filename;
+                            downloadLink.style.display = 'none';
+                            
+                            // DOM-a əlavə et və click et
+                            document.body.appendChild(downloadLink);
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                            
+                            // URL-i təmizlə
+                            URL.revokeObjectURL(url);
+                            
+                            // Success state
+                            statusDiv.find('p').html('<span style="color: #00a32a;">✓ Uğurlu! PNG yükləndi: ' + filename + '</span>');
+                            button.html('<span>✅</span> Yükləndi');
+                            
+                            setTimeout(() => {
+                                button.prop('disabled', false);
+                                button.html('<span>📥</span> PNG Yüklə');
+                                statusDiv.hide();
+                            }, 4000);
+                            
+                        }, 'image/png', 1.0);
+                    };
+                    
+                    img.onerror = function() {
+                        throw new Error('SVG-ni image-ə yükləmək olmadı');
+                    };
+                    
+                    // SVG data URL yarat və load et
+                    const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+                    const svgUrl = URL.createObjectURL(svgBlob);
+                    img.src = svgUrl;
+                    
+                } catch (error) {
+                    console.error('PNG Conversion Error:', error);
+                    statusDiv.find('p').html('<span style="color: #d63638;">✗ PNG çevirmə xətası: ' + error.message + '</span>');
+                    
+                    button.prop('disabled', false);
+                    button.html('<span>📥</span> PNG Yüklə');
+                    
+                    setTimeout(() => {
+                        statusDiv.hide();
+                    }, 5000);
+                }
+            }
         });
         </script>
         
