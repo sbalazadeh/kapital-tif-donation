@@ -866,26 +866,13 @@ class TIF_Admin {
                         </p>
                         <?php endif; ?>
                         
-                        <!-- PNG Preview (kiçik) -->
-                        <div style="margin: 15px 0; text-align: center; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                            <img src="<?php echo esc_url($png_url); ?>" 
-                                 alt="Certificate PNG Preview" 
-                                 style="max-width: 250px; max-height: 150px; border: 2px solid #ddd; border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
-                        </div>
                         
                         <!-- Actions -->
-                        <div style="text-align: center;">
-                            <a href="<?php echo esc_url($png_url); ?>" 
-                               target="_blank"
-                               class="png-btn" 
-                               style="margin-right: 10px;">
-                                <span>👁️</span> Görüntülə
-                            </a>
-                            
+                        <div style="text-align: center;"> 
                             <a href="<?php echo esc_url($png_url); ?>" 
                                download="certificate_<?php echo $post->ID; ?>.png"
-                               class="png-btn">
-                                <span>📥</span> Yüklə
+                               class="page-title-action">
+                                Download Certificate
                             </a>
                         </div>
                     </div>
