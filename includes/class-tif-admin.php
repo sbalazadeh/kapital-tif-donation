@@ -32,6 +32,8 @@ class TIF_Admin {
         add_action('admin_notices', array($this, 'show_bulk_action_notices'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_certificate_scripts'));
         add_action('wp_ajax_tif_preview_certificate', array($this, 'ajax_preview_certificate'));
+        add_action('wp_ajax_tif_save_certificate_png', array($this, 'ajax_save_certificate_png'));
+        add_action('wp_ajax_nopriv_tif_save_certificate_png', array($this, 'ajax_save_certificate_png'));
         
         // Customize admin columns
         add_filter('manage_' . $this->config['general']['post_type'] . '_posts_columns', array($this, 'add_custom_columns'));
@@ -45,6 +47,104 @@ class TIF_Admin {
         
         // Admin bar enhancements
         add_action('admin_bar_menu', array($this, 'add_admin_bar_items'), 100);
+    }
+
+    /**
+     * AJAX handler - Save PNG to server from Thank You page
+     */
+    public function ajax_save_certificate_png() {
+        // Security check
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'tif_save_png')) {
+            wp_send_json_error(array('message' => 'Security error'));
+        }
+        
+        $order_id = intval($_POST['order_id']);
+        if (!$order_id) {
+            wp_send_json_error(array('message' => 'Invalid order ID'));
+        }
+        
+        // Check if order exists
+        $order = get_post($order_id);
+        if (!$order || $order->post_type !== $this->config['general']['post_type']) {
+            wp_send_json_error(array('message' => 'Order not found'));
+        }
+        
+        // Check uploaded file
+        if (!isset($_FILES['certificate_png']) || $_FILES['certificate_png']['error'] !== UPLOAD_ERR_OK) {
+            wp_send_json_error(array('message' => 'File upload error: ' . $_FILES['certificate_png']['error']));
+        }
+        
+        try {
+            // Create certificates directory if not exists
+            $upload_dir = wp_upload_dir();
+            $cert_dir = $upload_dir['basedir'] . '/tif-certificates';
+            
+            if (!file_exists($cert_dir)) {
+                if (!wp_mkdir_p($cert_dir)) {
+                    throw new Exception('Failed to create certificates directory');
+                }
+            }
+            
+            // Add .htaccess for security (prevent PHP execution)
+            $htaccess_file = $cert_dir . '/.htaccess';
+            if (!file_exists($htaccess_file)) {
+                file_put_contents($htaccess_file, "# Disable PHP execution\nphp_flag engine off\n");
+            }
+            
+            // Generate unique filename
+            $timestamp = date('Y-m-d_H-i-s');
+            $random = wp_generate_password(6, false); // 6-character random string
+            $filename = "certificate_{$order_id}_{$timestamp}_{$random}.png";
+            $file_path = $cert_dir . '/' . $filename;
+            $file_url = $upload_dir['baseurl'] . '/tif-certificates/' . $filename;
+            
+            // Validate file type
+            $file_info = getimagesize($_FILES['certificate_png']['tmp_name']);
+            if (!$file_info || $file_info['mime'] !== 'image/png') {
+                throw new Exception('Invalid file type. Only PNG files are allowed.');
+            }
+            
+            // Move uploaded file
+            if (move_uploaded_file($_FILES['certificate_png']['tmp_name'], $file_path)) {
+                // Set proper file permissions
+                chmod($file_path, 0644);
+                
+                // Check if old PNG exists and delete it
+                $old_png_path = get_post_meta($order_id, 'certificate_png_path', true);
+                if ($old_png_path && file_exists($old_png_path) && $old_png_path !== $file_path) {
+                    @unlink($old_png_path); // Delete old PNG
+                }
+                
+                // Save to database
+                update_post_meta($order_id, 'certificate_png_path', $file_path);
+                update_post_meta($order_id, 'certificate_png_url', $file_url);
+                update_post_meta($order_id, 'certificate_png_generated', true);
+                update_post_meta($order_id, 'certificate_png_date', current_time('mysql'));
+                update_post_meta($order_id, 'certificate_png_filename', $filename);
+                
+                // Log success
+                error_log("TIF PNG Save Success - Order: {$order_id}, File: {$filename}");
+                
+                wp_send_json_success(array(
+                    'message' => 'PNG successfully saved to server',
+                    'file_path' => $file_path,
+                    'file_url' => $file_url,
+                    'filename' => $filename,
+                    'order_id' => $order_id,
+                    'file_size' => filesize($file_path)
+                ));
+                
+            } else {
+                throw new Exception('Failed to move uploaded file to destination');
+            }
+            
+        } catch (Exception $e) {
+            error_log("TIF PNG Save Error - Order: {$order_id}, Error: " . $e->getMessage());
+            wp_send_json_error(array(
+                'message' => $e->getMessage(),
+                'order_id' => $order_id
+            ));
+        }
     }
     
     /**
