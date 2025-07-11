@@ -839,24 +839,88 @@ class TIF_Admin {
                 <?php endif; ?>
                 
                 <!-- PNG Generation Section -->
-                <?php if ($is_eligible): ?>
-                <div class="png-generation">
-                    <button type="button" id="tif-generate-png" class="png-btn" 
-                            data-order-id="<?php echo esc_attr($post->ID); ?>"
-                            data-certificate-type="<?php echo esc_attr($suggested_type); ?>">
-                        <span>📥</span> PNG Yüklə
-                    </button>
-                    
-                    <div id="tif-png-status" class="png-status" style="display: none;">
-                        <p>Sertifikat hazırlanır...</p>
+                <?php
+                $png_path = get_post_meta($post->ID, 'certificate_png_path', true);
+                $png_url = get_post_meta($post->ID, 'certificate_png_url', true);
+                $png_generated = get_post_meta($post->ID, 'certificate_png_generated', true);
+                $png_date = get_post_meta($post->ID, 'certificate_png_date', true);
+                $png_filename = get_post_meta($post->ID, 'certificate_png_filename', true);
+                ?>
+                
+                <?php if ($png_generated && $png_url && file_exists($png_path)): ?>
+                    <!-- PNG mövcuddur -->
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                        <p style="color: #00a32a; margin-bottom: 10px; font-weight: 600;">
+                            ✅ PNG Sertifikat mövcuddur
+                        </p>
+                        
+                        <?php if ($png_date): ?>
+                        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                            📅 Yaradılma tarixi: <?php echo date('d.m.Y H:i', strtotime($png_date)); ?>
+                        </p>
+                        <?php endif; ?>
+                        
+                        <?php if ($png_filename): ?>
+                        <p style="font-size: 11px; color: #999; margin-bottom: 15px;">
+                            📁 Fayl: <?php echo esc_html($png_filename); ?>
+                        </p>
+                        <?php endif; ?>
+                        
+                        <!-- PNG Preview (kiçik) -->
+                        <div style="margin: 15px 0; text-align: center; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <img src="<?php echo esc_url($png_url); ?>" 
+                                 alt="Certificate PNG Preview" 
+                                 style="max-width: 250px; max-height: 150px; border: 2px solid #ddd; border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div style="text-align: center;">
+                            <a href="<?php echo esc_url($png_url); ?>" 
+                               target="_blank"
+                               class="png-btn" 
+                               style="margin-right: 10px;">
+                                <span>👁️</span> Görüntülə
+                            </a>
+                            
+                            <a href="<?php echo esc_url($png_url); ?>" 
+                               download="certificate_<?php echo $post->ID; ?>.png"
+                               class="png-btn">
+                                <span>📥</span> Yüklə
+                            </a>
+                        </div>
                     </div>
-                </div>
+                    
                 <?php else: ?>
-                <div class="png-generation">
-                    <p style="color: #d63638; font-size: 12px; margin: 0;">
-                        PNG generation üçün payment status "completed" olmalıdır
-                    </p>
-                </div>
+                    <!-- PNG yoxdur -->
+                    <?php if ($is_eligible): ?>
+                        <div class="png-generation">
+                            <p style="color: #f56e28; margin-bottom: 10px; font-weight: 600;">
+                                ⚠️ PNG hələ yaradılmayıb
+                            </p>
+                            <p style="font-size: 12px; color: #666; margin-bottom: 15px;">
+                                İstifadəçi <strong>Thank You</strong> səhifəsində PNG download etdikdə avtomatik olaraq burada görünəcək.
+                            </p>
+                            
+                            <!-- Manual generation fallback üçün button -->
+                            <button type="button" id="tif-generate-png" class="png-btn" 
+                                    data-order-id="<?php echo esc_attr($post->ID); ?>"
+                                    data-certificate-type="<?php echo esc_attr($suggested_type); ?>"
+                                    style="background: #17a2b8;">
+                                <span>🔄</span> Manual PNG Yarat
+                            </button>
+                            
+                            <div id="tif-png-status" class="png-status" style="display: none;">
+                                <p>Sertifikat hazırlanır...</p>
+                            </div>
+                        </div>
+                        
+                    <?php else: ?>
+                        <div class="png-generation">
+                            <p style="color: #d63638; font-size: 12px; margin: 0;">
+                                ❌ PNG yaratmaq üçün payment status "completed" olmalıdır
+                            </p>
+                        </div>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
             
