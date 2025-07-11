@@ -183,6 +183,7 @@ function downloadAsPNG() {
     const img = new Image();
     const certificateName = <?php echo json_encode(sanitize_file_name($name ?? "İanəçi")); ?>;
     const certificateDate = <?php echo json_encode(date("Y-m-d")); ?>;
+    const orderId = <?php echo $order_id; ?>; // Order ID əlavə edildi
     
     img.onload = function() {
         // Canvas-a çək (scaled)
@@ -191,14 +192,21 @@ function downloadAsPNG() {
         
         // PNG olaraq download et
         canvas.toBlob(function(blob) {
+            const filename = `TIF_Sertifikat_${certificateName}_${certificateDate}.png`;
+            
+            // 1. Client-side download (mövcud)
             const url = URL.createObjectURL(blob);
             const downloadLink = document.createElement('a');
             downloadLink.href = url;
-            downloadLink.download = `TIF_Sertifikat_${certificateName}_${certificateDate}.png`;
+            downloadLink.download = filename;
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
             URL.revokeObjectURL(url);
+            
+            // 2. Server-də save et (YENİ ƏLAVƏ)
+            savePNGToServer(blob, orderId, certificateName);
+            
         }, 'image/png', 1.0);
     };
     
@@ -210,6 +218,58 @@ function downloadAsPNG() {
     const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
     const url = URL.createObjectURL(svgBlob);
     img.src = url;
+}
+
+// YENİ ƏLAVƏ FUNKSIYA - Server save
+function savePNGToServer(blob, orderId, certificateName) {
+    const formData = new FormData();
+    formData.append('action', 'tif_save_certificate_png');
+    formData.append('order_id', orderId);
+    formData.append('certificate_png', blob, `certificate_${orderId}_${certificateName}.png`);
+    formData.append('nonce', '<?php echo wp_create_nonce("tif_save_png"); ?>');
+    
+    // Show saving status
+    const certificateActions = document.querySelector('.tif-certificate-actions');
+    const statusMsg = document.createElement('div');
+    statusMsg.id = 'save-status';
+    statusMsg.innerHTML = '<p style="color: #007bff; margin-top: 10px;">💾 Sertifikat server-də saxlanır...</p>';
+    certificateActions.appendChild(statusMsg);
+    
+    fetch('/wp-admin/admin-ajax.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        const statusMsg = document.getElementById('save-status');
+        
+        if (data.success) {
+            console.log('✅ PNG server-də saxlanıldı:', data.data.file_path);
+            
+            statusMsg.innerHTML = '<p style="color: #28a745; margin-top: 10px;">✅ Sertifikat uğurla server-də saxlanıldı!</p>';
+            
+            // Success message auto-hide
+            setTimeout(() => {
+                if (statusMsg) statusMsg.remove();
+            }, 4000);
+            
+        } else {
+            console.error('PNG save error:', data.data?.message);
+            statusMsg.innerHTML = '<p style="color: #dc3545; margin-top: 10px;">❌ Server save xətası</p>';
+            
+            setTimeout(() => {
+                if (statusMsg) statusMsg.remove();
+            }, 5000);
+        }
+    })
+    .catch(error => {
+        console.error('PNG save request failed:', error);
+        const statusMsg = document.getElementById('save-status');
+        if (statusMsg) {
+            statusMsg.innerHTML = '<p style="color: #dc3545; margin-top: 10px;">❌ Network xətası</p>';
+            setTimeout(() => statusMsg.remove(), 5000);
+        }
+    });
 }
 
 function openCertificateWindow() {
