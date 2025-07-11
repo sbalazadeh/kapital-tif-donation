@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin Certificate Details Template - IMPROVED
+ * Admin Certificate Details Template - FIXED VERSION
  */
 
 // Prevent direct access
@@ -43,13 +43,20 @@ if (!defined('ABSPATH')) {
         $type_display = $type_map[$suggested_type] ?? 'TIF Certificate';
         ?>
         <p style="margin: 5px 0; color: #0073aa;"><?php echo esc_html($type_display); ?></p>
+        
+        <!-- Payment Status Debug -->
+        <p style="margin: 5px 0;"><strong><?php _e('Payment Status:', 'kapital-tif-donation'); ?></strong></p>
+        <p style="margin: 5px 0; color: <?php echo $is_eligible ? '#00a32a' : '#d63638'; ?>;">
+            <?php echo esc_html($payment_status ?: 'Unknown'); ?> 
+            <?php echo $is_eligible ? '(Eligible)' : '(Not Eligible)'; ?>
+        </p>
     </div>
 
-    <!-- Simple PNG Download Section -->
-    <div class="tif-simple-png-download" style="margin-top: 15px; padding: 15px; background: #f6f7f7; border-radius: 4px;">
-        <h4 style="margin: 0 0 10px 0;"><?php _e('PNG Sertifikat', 'kapital-tif-donation'); ?></h4>
+    <!-- PNG Download Section -->
+    <div class="tif-simple-png-download" style="margin-top: 15px; padding: 15px; background: #f6f7f7; border-radius: 4px; border: 1px solid #c3c4c7;">
+        <h4 style="margin: 0 0 10px 0; color: #1d2327; font-size: 14px;"><?php _e('PNG Sertifikat', 'kapital-tif-donation'); ?></h4>
         
-        <?php if ($certificate_generated): ?>
+        <?php if ($certificate_generated && $is_eligible): ?>
             <p style="margin: 0 0 10px 0; font-size: 13px;"><?php _e('Sertifikatı yüksək keyfiyyətli PNG formatında yükləyin:', 'kapital-tif-donation'); ?></p>
             
             <button type="button" class="button button-primary tif-simple-png-download-btn" 
@@ -59,7 +66,7 @@ if (!defined('ABSPATH')) {
                 <?php _e('PNG Yüklə', 'kapital-tif-donation'); ?>
             </button>
             
-        <?php else: ?>
+        <?php elseif ($is_eligible): ?>
             <p style="margin: 0 0 10px 0; font-size: 13px; color: #666;"><?php _e('PNG yükləmək üçün əvvəlcə sertifikat yaradın:', 'kapital-tif-donation'); ?></p>
             
             <button type="button" class="button button-primary tif-generate-certificate" 
@@ -68,6 +75,16 @@ if (!defined('ABSPATH')) {
                 <span class="dashicons dashicons-plus-alt" style="line-height: 1.2;"></span>
                 <?php _e('Sertifikat Yarat', 'kapital-tif-donation'); ?>
             </button>
+        <?php else: ?>
+            <div style="padding: 10px; background: #fcf0f1; border: 1px solid #d63638; border-radius: 4px;">
+                <p style="margin: 0; font-size: 13px; color: #d63638;">
+                    <strong><?php _e('Qeyd:', 'kapital-tif-donation'); ?></strong> 
+                    <?php _e('Sertifikat yalnız completed/success statuslu sifarişlər üçün mövcuddur.', 'kapital-tif-donation'); ?>
+                </p>
+                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
+                    <?php printf(__('Cari status: %s', 'kapital-tif-donation'), '<strong>' . esc_html($payment_status ?: 'Unknown') . '</strong>'); ?>
+                </p>
+            </div>
         <?php endif; ?>
         
         <div class="tif-simple-download-status" style="margin-top: 10px;"></div>
@@ -90,14 +107,14 @@ if (!defined('ABSPATH')) {
 <script>
 jQuery(document).ready(function($) {
     
-    // PNG Download function
+    // PNG Download function - FIXED
     $('.tif-simple-png-download-btn').on('click', function() {
         var $btn = $(this);
         var orderId = $btn.data('order-id');
         var type = $btn.data('type');
         var $status = $('.tif-simple-download-status');
         
-        // Validate data
+        // Validation
         if (!orderId || !type) {
             $status.html('<div class="notice notice-error"><p>Order ID və ya tip tapılmadı</p></div>');
             return;
@@ -106,22 +123,24 @@ jQuery(document).ready(function($) {
         $btn.prop('disabled', true).find('.dashicons').addClass('spin');
         $status.html('<div class="notice notice-info"><p><span class="dashicons dashicons-update spin"></span> Sertifikat hazırlanır...</p></div>');
         
-        // AJAX request üçün nonce
+        // AJAX request with proper nonce
         var previewNonce = '<?php echo wp_create_nonce("tif_preview_certificate"); ?>';
         
-        // Əvvəlcə SVG content götür
         $.post(ajaxurl, {
             action: 'tif_preview_certificate',
             order_id: orderId,
             type: type,
             nonce: previewNonce
         }, function(response) {
+            console.log('AJAX Response:', response); // Debug log
+            
             if (response && response.success && response.data && response.data.svg) {
                 // SVG content-i PNG-yə çevir və download et
                 convertAndDownloadPNG(response.data.svg, orderId, type, $status);
             } else {
                 var errorMsg = response && response.data && response.data.message ? response.data.message : 'SVG yaradıla bilmədi';
                 $status.html('<div class="notice notice-error"><p>Xəta: ' + errorMsg + '</p></div>');
+                console.error('Preview Error:', response);
             }
         }).fail(function(xhr, status, error) {
             console.error('AJAX Error:', status, error);
@@ -172,7 +191,7 @@ jQuery(document).ready(function($) {
         });
     });
     
-    // PNG Conversion Function (Thank you səhifəsindən adapted + error handling improved)
+    // PNG Conversion Function - COMPLETE WORKING VERSION
     function convertAndDownloadPNG(svgContent, orderId, type, $status) {
         try {
             // Input validation
@@ -181,7 +200,9 @@ jQuery(document).ready(function($) {
                 return;
             }
             
-            // Temporary div yarad
+            $status.html('<div class="notice notice-info"><p><span class="dashicons dashicons-update spin"></span> PNG-yə çevrilir...</p></div>');
+            
+            // Create temporary div for SVG
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = svgContent;
             tempDiv.style.position = 'absolute';
@@ -197,17 +218,14 @@ jQuery(document).ready(function($) {
                 return;
             }
             
-            $status.html('<div class="notice notice-info"><p><span class="dashicons dashicons-update spin"></span> PNG-yə çevrilir...</p></div>');
-            
-            // PNG conversion
-            const svgData = new XMLSerializer().serializeToString(svgElement);
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // SVG dimensions with fallback
+            // Get SVG dimensions
             const svgWidth = svgElement.viewBox && svgElement.viewBox.baseVal.width ? svgElement.viewBox.baseVal.width : 842;
             const svgHeight = svgElement.viewBox && svgElement.viewBox.baseVal.height ? svgElement.viewBox.baseVal.height : 600;
             const scale = 2; // High quality
+            
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
             
             canvas.width = svgWidth * scale;
             canvas.height = svgHeight * scale;
@@ -216,6 +234,7 @@ jQuery(document).ready(function($) {
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
+            // Convert SVG to image
             const img = new Image();
             const today = new Date().toISOString().split('T')[0];
             
@@ -235,7 +254,7 @@ jQuery(document).ready(function($) {
                         const downloadLink = document.createElement('a');
                         downloadLink.href = url;
                         
-                        // Order məlumatlarını götür filename üçün
+                        // Generate filename
                         const orderTitle = $('#title').val() || 'Order';
                         const cleanTitle = orderTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
                         
@@ -249,7 +268,7 @@ jQuery(document).ready(function($) {
                         // Success message
                         $status.html('<div class="notice notice-success"><p><span class="dashicons dashicons-yes"></span> PNG sertifikat uğurla yükləndi!</p></div>');
                         
-                        // 5 saniyə sonra mesajı təmizlə
+                        // Clear message after 5 seconds
                         setTimeout(function() {
                             $status.fadeOut(500, function() {
                                 $status.empty().show();
@@ -260,7 +279,7 @@ jQuery(document).ready(function($) {
                     
                 } catch (drawError) {
                     console.error('Canvas draw error:', drawError);
-                    $status.html('<div class="notice notice-error"><p>Canvas çəkmə xətası: ' + drawError.message + '</p></div>');
+                    $status.html('<div class="notice notice-error"><p>Canvas çəkmə xətası</p></div>');
                 } finally {
                     // Cleanup
                     if (document.body.contains(tempDiv)) {
@@ -277,18 +296,19 @@ jQuery(document).ready(function($) {
                 }
             };
             
-            // Set timeout for image loading
+            // Set timeout
             setTimeout(function() {
                 if (!img.complete) {
-                    img.src = ''; // Cancel loading
+                    img.src = '';
                     $status.html('<div class="notice notice-error"><p>Şəkil yükləmə timeout</p></div>');
                     if (document.body.contains(tempDiv)) {
                         document.body.removeChild(tempDiv);
                     }
                 }
-            }, 10000); // 10 second timeout
+            }, 10000);
             
-            // SVG-ni Image-ə load et
+            // Convert SVG to blob URL for image
+            const svgData = new XMLSerializer().serializeToString(svgElement);
             const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
             const url = URL.createObjectURL(svgBlob);
             img.src = url;
@@ -318,6 +338,8 @@ jQuery(document).ready(function($) {
 .tif-simple-download-status .notice {
     margin: 10px 0 5px 0;
     padding: 8px 12px;
+    border-left: 4px solid;
+    border-radius: 0 4px 4px 0;
 }
 
 .tif-simple-download-status .notice p {
@@ -336,85 +358,19 @@ jQuery(document).ready(function($) {
     font-size: 14px;
 }
 
-/* Error handling styles */
+/* Enhanced styling for notices */
 .tif-simple-download-status .notice-error {
-    border-left: 4px solid #d63638;
+    border-left-color: #d63638;
     background: #fcf0f1;
 }
 
 .tif-simple-download-status .notice-success {
-    border-left: 4px solid #00a32a;
+    border-left-color: #00a32a;
     background: #f0f6fc;
 }
 
 .tif-simple-download-status .notice-info {
-    border-left: 4px solid #72aee6;
+    border-left-color: #72aee6;
     background: #f0f6fc;
 }
 </style>
-
-<?php
-/**
- * Debug helper - class-tif-admin.php-ə əlavə ediləcək
- */
-
-// Admin enqueue scripts method
-public function enqueue_admin_certificate_scripts($hook) {
-    // Yalnız order edit səhifəsində
-    if ($hook !== 'post.php' && $hook !== 'post-new.php') {
-        return;
-    }
-    
-    global $post;
-    if (!$post || $post->post_type !== $this->config['general']['post_type']) {
-        return;
-    }
-    
-    // Debug log
-    if (defined('WP_DEBUG') && WP_DEBUG) {
-        error_log("TIF Admin: Enqueuing certificate scripts for order: " . $post->ID);
-    }
-    
-    // Nonce data için localize script
-    wp_localize_script('jquery', 'tif_admin_certificate', array(
-        'ajax_url' => admin_url('admin-ajax.php'),
-        'order_id' => $post->ID,
-        'post_type' => $post->post_type,
-        'nonces' => array(
-            'preview' => wp_create_nonce('tif_preview_certificate'),
-            'generate' => wp_create_nonce('tif_generate_certificate')
-        ),
-        'debug' => defined('WP_DEBUG') && WP_DEBUG,
-        'messages' => array(
-            'generating' => __('Sertifikat yaradılır...', 'kapital-tif-donation'),
-            'converting' => __('PNG-yə çevrilir...', 'kapital-tif-donation'),
-            'success' => __('Uğurla tamamlandı!', 'kapital-tif-donation'),
-            'error' => __('Xəta baş verdi', 'kapital-tif-donation')
-        )
-    ));
-}
-
-// Hook-u constructor və ya init-də əlavə et
-add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_certificate_scripts'));
-
-/**
- * AJAX handler test üçün
- */
-public function test_certificate_ajax() {
-    // Debug info
-    error_log("TIF Certificate AJAX Test - Request data: " . print_r($_POST, true));
-    
-    if (!current_user_can('edit_posts')) {
-        wp_send_json_error(array('message' => 'Unauthorized'));
-    }
-    
-    wp_send_json_success(array(
-        'message' => 'AJAX working correctly',
-        'server_time' => current_time('mysql'),
-        'request_data' => $_POST
-    ));
-}
-
-// Test AJAX hook
-add_action('wp_ajax_tif_test_certificate_ajax', array($this, 'test_certificate_ajax'));
-?>
