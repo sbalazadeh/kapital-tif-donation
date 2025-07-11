@@ -287,44 +287,27 @@ class TIF_Admin {
     
     
     /**
-     * Add meta boxes - Sertifikat meta box əlavə edildi
+     * Add meta boxes - Unified version
      */
     public function add_meta_boxes() {
+        // Unified main meta box - bütün məlumatlar burada
         add_meta_box(
-            'tif_donation_details',
-            __('İanə məlumatları', 'kapital-tif-donation'),
-            array($this, 'donation_details_callback'),
+            'tif_unified_details',
+            __('İanə və Sertifikat Məlumatları', 'kapital-tif-donation'),
+            array($this, 'unified_details_callback'),
             $this->config['general']['post_type'],
             'normal',
             'high'
         );
         
-        add_meta_box(
-            'tif_transaction_details',
-            __('Əməliyyat məlumatları', 'kapital-tif-donation'),
-            array($this, 'transaction_details_callback'),
-            $this->config['general']['post_type'],
-            'normal',
-            'high'
-        );
-        
+        // Kiçik API info - saxlanılır
         add_meta_box(
             'tif_api_info',
-            __('API məlumatları', 'kapital-tif-donation'),
+            __('API Status', 'kapital-tif-donation'),
             array($this, 'api_info_callback'),
             $this->config['general']['post_type'],
             'side',
             'low'
-        );
-        
-        // YENİ: Sertifikat Meta Box
-        add_meta_box(
-            'tif_certificate_details',
-            __('İanə Sertifikatı', 'kapital-tif-donation'),
-            array($this, 'certificate_details_callback'),
-            $this->config['general']['post_type'],
-            'side',
-            'high'
         );
     }
     
@@ -394,6 +377,516 @@ class TIF_Admin {
     }
 
     /**
+     * Unified details meta box callback
+     * Bütün məlumatları tək yerdə göstərir
+     */
+    public function unified_details_callback($post) {
+        wp_nonce_field($this->config['security']['nonce_actions']['donation_details'], 'tif_unified_details_nonce');
+        
+        // Get all data
+        $name = get_post_meta($post->ID, 'name', true);
+        $phone = get_post_meta($post->ID, 'phone', true);
+        $amount = get_post_meta($post->ID, 'amount', true);
+        $company = get_post_meta($post->ID, 'company', true);
+        $company_name = get_post_meta($post->ID, 'company_name', true);
+        $voen = get_post_meta($post->ID, 'voen', true);
+        $iane_tesnifati = get_post_meta($post->ID, 'iane_tesnifati', true);
+        
+        // Transaction data
+        $bank_order_id = get_post_meta($post->ID, 'bank_order_id', true);
+        $transaction_id = get_post_meta($post->ID, 'transactionId_local', true);
+        $payment_status = get_post_meta($post->ID, 'payment_status', true);
+        $payment_date = get_post_meta($post->ID, 'payment_date', true);
+        $payment_method = get_post_meta($post->ID, 'payment_method', true);
+        $approval_code = get_post_meta($post->ID, 'approval_code', true);
+        $card_number = get_post_meta($post->ID, 'card_number', true);
+        
+        // Certificate data
+        $certificate_generated = get_post_meta($post->ID, 'certificate_generated', true);
+        $certificate_type = get_post_meta($post->ID, 'certificate_type', true);
+        $certificate_date = get_post_meta($post->ID, 'certificate_date', true);
+        
+        // Process certificate logic
+        $is_eligible = in_array($payment_status, array('completed', 'success', 'FullyPaid', 'Completed'));
+        $certificate_mapping = array(
+            'tifiane' => 'tif',
+            'qtdl' => 'youth', 
+            'qtp' => 'sustainable'
+        );
+        $suggested_type = $certificate_mapping[$iane_tesnifati] ?? 'tif';
+        
+        // Display name logic
+        $display_name = $name;
+        if ($company === 'Hüquqi şəxs' && !empty($company_name)) {
+            $display_name = $company_name;
+        }
+        
+        // İanə təsnifatı mapping
+        $iane_map = array(
+            'tifiane' => 'Təhsilin İnkişafı Fonduna',
+            'qtdl' => 'Qızların təhsilinə dəstək layihəsinə',
+            'qtp' => 'Qarabağ Təqaüd Proqramına'
+        );
+        $iane_display = isset($iane_map[$iane_tesnifati]) ? $iane_map[$iane_tesnifati] : 'Müəyyən edilməyib';
+        
+        ?>
+        
+        <style>
+        .tif-unified-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 15px 0;
+        }
+        
+        .tif-meta-section {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        
+        .tif-meta-section h3 {
+            margin: 0 0 15px 0;
+            padding: 0 0 10px 0;
+            border-bottom: 1px solid #ddd;
+            color: #23282d;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .tif-meta-field {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .tif-meta-field label {
+            font-weight: 600;
+            color: #555;
+            min-width: 120px;
+            font-size: 13px;
+        }
+        
+        .tif-meta-field .value {
+            flex: 1;
+            text-align: right;
+            font-size: 13px;
+        }
+        
+        .tif-meta-field .value.editable input,
+        .tif-meta-field .value.editable select {
+            width: 100%;
+            max-width: 200px;
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        
+        .status-completed { color: #00a32a; font-weight: 600; }
+        .status-pending { color: #f56e28; font-weight: 600; }
+        .status-failed { color: #d63638; font-weight: 600; }
+        .status-unknown { color: #666; }
+        
+        .certificate-section .tif-meta-field .value {
+            font-weight: 600;
+        }
+        
+        .certificate-eligible { color: #00a32a; }
+        .certificate-not-eligible { color: #d63638; }
+        
+        .png-generation {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+        }
+        
+        .png-btn {
+            background: #0073aa;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .png-btn:hover {
+            background: #005a87;
+        }
+        
+        .png-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .png-status {
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 1200px) {
+            .tif-unified-meta {
+                grid-template-columns: 1fr;
+            }
+        }
+        </style>
+        
+        <div class="tif-unified-meta">
+            
+            <!-- İanə Məlumatları -->
+            <div class="tif-meta-section donation-section">
+                <h3>📝 İanə Məlumatları</h3>
+                
+                <div class="tif-meta-field">
+                    <label>Ad və Soyad:</label>
+                    <div class="value editable">
+                        <input type="text" name="name" value="<?php echo esc_attr($name); ?>" />
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Telefon:</label>
+                    <div class="value editable">
+                        <input type="text" name="phone" value="<?php echo esc_attr($phone); ?>" />
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Məbləğ:</label>
+                    <div class="value editable">
+                        <input type="number" name="amount" value="<?php echo esc_attr($amount); ?>" step="0.01" min="0" />
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Təşkilat:</label>
+                    <div class="value editable">
+                        <select name="company" id="company_select">
+                            <option value="Fiziki şəxs" <?php selected($company, 'Fiziki şəxs'); ?>>Fiziki şəxs</option>
+                            <option value="Hüquqi şəxs" <?php selected($company, 'Hüquqi şəxs'); ?>>Hüquqi şəxs</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field" id="company_name_field" <?php echo ($company != 'Hüquqi şəxs') ? 'style="display:none;"' : ''; ?>>
+                    <label>Qurumun adı:</label>
+                    <div class="value editable">
+                        <input type="text" name="company_name" value="<?php echo esc_attr($company_name); ?>" />
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field" id="voen_field" <?php echo ($company != 'Hüquqi şəxs') ? 'style="display:none;"' : ''; ?>>
+                    <label>VÖEN:</label>
+                    <div class="value editable">
+                        <input type="text" name="voen" value="<?php echo esc_attr($voen); ?>" />
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>İanə Təsnifatı:</label>
+                    <div class="value editable">
+                        <select name="iane_tesnifati">
+                            <option value="tifiane" <?php selected($iane_tesnifati, 'tifiane'); ?>>TIF</option>
+                            <option value="qtdl" <?php selected($iane_tesnifati, 'qtdl'); ?>>Qızların təhsili</option>
+                            <option value="qtp" <?php selected($iane_tesnifati, 'qtp'); ?>>Qarabağ təqaüd</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Təsnifat:</label>
+                    <div class="value" style="color: #0073aa;">
+                        <?php echo esc_html($iane_display); ?>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Əməliyyat Məlumatları -->
+            <div class="tif-meta-section transaction-section">
+                <h3>💳 Əməliyyat Məlumatları</h3>
+                
+                <div class="tif-meta-field">
+                    <label>Transaction ID:</label>
+                    <div class="value">
+                        <strong><?php echo esc_html($transaction_id ?: 'Yoxdur'); ?></strong>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Bank Order ID:</label>
+                    <div class="value">
+                        <?php echo esc_html($bank_order_id ?: 'Yoxdur'); ?>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Status:</label>
+                    <div class="value editable">
+                        <select name="payment_status">
+                            <option value="pending" <?php selected($payment_status, 'pending'); ?>>Pending</option>
+                            <option value="completed" <?php selected($payment_status, 'completed'); ?>>Completed</option>
+                            <option value="FullyPaid" <?php selected($payment_status, 'FullyPaid'); ?>>FullyPaid</option>
+                            <option value="failed" <?php selected($payment_status, 'failed'); ?>>Failed</option>
+                            <option value="cancelled" <?php selected($payment_status, 'cancelled'); ?>>Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Status Display:</label>
+                    <div class="value <?php 
+                        if (in_array($payment_status, ['completed', 'FullyPaid'])) echo 'status-completed';
+                        elseif ($payment_status === 'pending') echo 'status-pending';
+                        elseif (in_array($payment_status, ['failed', 'cancelled'])) echo 'status-failed';
+                        else echo 'status-unknown';
+                    ?>">
+                        <?php echo esc_html($payment_status ?: 'Unknown'); ?>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Ödəniş Tarixi:</label>
+                    <div class="value">
+                        <?php echo esc_html($payment_date ? date('d.m.Y H:i', strtotime($payment_date)) : 'Yoxdur'); ?>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Ödəniş Metodu:</label>
+                    <div class="value">
+                        <?php echo esc_html($payment_method ?: 'Kapital Bank'); ?>
+                    </div>
+                </div>
+                
+                <?php if ($approval_code): ?>
+                <div class="tif-meta-field">
+                    <label>Approval Code:</label>
+                    <div class="value">
+                        <?php echo esc_html($approval_code); ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
+                <?php if ($card_number): ?>
+                <div class="tif-meta-field">
+                    <label>Kart:</label>
+                    <div class="value">
+                        <?php echo esc_html($card_number); ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+            
+            <!-- Sertifikat Məlumatları -->
+            <div class="tif-meta-section certificate-section">
+                <h3>🎓 Sertifikat Məlumatları</h3>
+                
+                <div class="tif-meta-field">
+                    <label>Sertifikat Status:</label>
+                    <div class="value <?php echo $certificate_generated ? 'certificate-eligible' : 'certificate-not-eligible'; ?>">
+                        <?php echo $certificate_generated ? '✓ Mövcuddur' : '✗ Yaradılmamış'; ?>
+                    </div>
+                </div>
+                
+                <?php if ($certificate_date): ?>
+                <div class="tif-meta-field">
+                    <label>Yaradılma Tarixi:</label>
+                    <div class="value">
+                        <?php echo esc_html(date('d.m.Y H:i', strtotime($certificate_date))); ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
+                <div class="tif-meta-field">
+                    <label>Sertifikat Növü:</label>
+                    <div class="value">
+                        <?php 
+                        $type_map = array('tif' => 'TIF', 'youth' => 'Youth', 'sustainable' => 'Sustainable');
+                        echo esc_html($type_map[$suggested_type] ?? 'TIF');
+                        ?>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Uyğunluq:</label>
+                    <div class="value <?php echo $is_eligible ? 'certificate-eligible' : 'certificate-not-eligible'; ?>">
+                        <?php echo $is_eligible ? '✓ Uyğundur' : '✗ Uyğun deyil'; ?>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Sertifikatda Ad:</label>
+                    <div class="value" style="font-weight: 600; color: #0073aa;">
+                        <?php echo esc_html($display_name ?: 'Müəyyən edilməyib'); ?>
+                    </div>
+                </div>
+                
+                <?php if ($company === 'Hüquqi şəxs'): ?>
+                <div class="tif-meta-field">
+                    <label>Əlaqədar Şəxs:</label>
+                    <div class="value" style="font-size: 12px; color: #666;">
+                        <?php echo esc_html($name ?: 'Müəyyən edilməyib'); ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
+                <!-- PNG Generation Section -->
+                <?php if ($is_eligible): ?>
+                <div class="png-generation">
+                    <button type="button" id="tif-generate-png" class="png-btn" 
+                            data-order-id="<?php echo esc_attr($post->ID); ?>"
+                            data-certificate-type="<?php echo esc_attr($suggested_type); ?>">
+                        <span>📥</span> PNG Yüklə
+                    </button>
+                    
+                    <div id="tif-png-status" class="png-status" style="display: none;">
+                        <p>Sertifikat hazırlanır...</p>
+                    </div>
+                </div>
+                <?php else: ?>
+                <div class="png-generation">
+                    <p style="color: #d63638; font-size: 12px; margin: 0;">
+                        PNG generation üçün payment status "completed" olmalıdır
+                    </p>
+                </div>
+                <?php endif; ?>
+            </div>
+            
+            <!-- API və Debug Info -->
+            <div class="tif-meta-section api-section">
+                <h3>⚙️ Sistem Məlumatları</h3>
+                
+                <div class="tif-meta-field">
+                    <label>Post ID:</label>
+                    <div class="value">
+                        <?php echo esc_html($post->ID); ?>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Post Status:</label>
+                    <div class="value">
+                        <?php echo esc_html($post->post_status); ?>
+                    </div>
+                </div>
+                
+                <div class="tif-meta-field">
+                    <label>Son Yeniləmə:</label>
+                    <div class="value">
+                        <?php echo esc_html(get_the_modified_date('d.m.Y H:i', $post->ID)); ?>
+                    </div>
+                </div>
+                
+                <?php if (defined('WP_DEBUG') && WP_DEBUG): ?>
+                <details style="margin-top: 15px;">
+                    <summary style="cursor: pointer; font-size: 12px; color: #666;">Debug Məlumatları</summary>
+                    <div style="font-size: 10px; color: #999; margin-top: 5px; max-height: 150px; overflow-y: auto;">
+                        <pre><?php 
+                        $debug_data = array(
+                            'name' => $name,
+                            'company' => $company,
+                            'company_name' => $company_name,
+                            'iane_tesnifati' => $iane_tesnifati,
+                            'payment_status' => $payment_status,
+                            'is_eligible' => $is_eligible,
+                            'display_name' => $display_name,
+                            'suggested_type' => $suggested_type
+                        );
+                        echo esc_html(print_r($debug_data, true));
+                        ?></pre>
+                    </div>
+                </details>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            // Company type toggle
+            $('#company_select').on('change', function() {
+                if ($(this).val() === 'Hüquqi şəxs') {
+                    $('#company_name_field, #voen_field').show();
+                } else {
+                    $('#company_name_field, #voen_field').hide();
+                }
+            });
+            
+            // PNG generation handler
+            $('#tif-generate-png').on('click', function(e) {
+                e.preventDefault();
+                
+                const button = $(this);
+                const orderId = button.data('order-id');
+                const certificateType = button.data('certificate-type');
+                const statusDiv = $('#tif-png-status');
+                
+                // Show loading state
+                button.prop('disabled', true);
+                button.html('<span>⏳</span> Hazırlanır...');
+                statusDiv.show().find('p').text('Sertifikat PNG formatına çevrilir...');
+                
+                // AJAX request for PNG generation
+                $.ajax({
+                    url: ajaxurl,
+                    method: 'POST',
+                    data: {
+                        action: 'tif_generate_certificate_png',
+                        order_id: orderId,
+                        certificate_type: certificateType,
+                        nonce: '<?php echo wp_create_nonce("tif_certificate_png"); ?>'
+                    },
+                    timeout: 30000,
+                    success: function(response) {
+                        if (response.success && response.data.download_url) {
+                            statusDiv.find('p').html('<span style="color: #00a32a;">✓ Uğurlu! PNG yüklənir...</span>');
+                            
+                            // Auto download
+                            const link = document.createElement('a');
+                            link.href = response.data.download_url;
+                            link.download = 'sertifikat-' + orderId + '.png';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            
+                            // Success state
+                            button.html('<span>✅</span> Yükləndi');
+                            setTimeout(() => {
+                                button.prop('disabled', false);
+                                button.html('<span>📥</span> PNG Yüklə');
+                                statusDiv.hide();
+                            }, 3000);
+                            
+                        } else {
+                            throw new Error(response.data?.message || 'PNG yaradıla bilmədi');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('PNG Generation Error:', error);
+                        statusDiv.find('p').html('<span style="color: #d63638;">✗ Xəta: ' + (error || 'Naməlum xəta') + '</span>');
+                        
+                        button.prop('disabled', false);
+                        button.html('<span>📥</span> PNG Yüklə');
+                        
+                        setTimeout(() => {
+                            statusDiv.hide();
+                        }, 5000);
+                    }
+                });
+            });
+        });
+        </script>
+        
+        <?php
+    }
+
+    /**
      * API info callback
      */
     public function api_info_callback($post) {
@@ -410,12 +903,12 @@ class TIF_Admin {
     }
     
     /**
-     * Save meta box data including İanə Təsnifatı
-     */
+    * Save unified meta box data - Updated for all fields
+    */
     public function save_meta_box_data($post_id) {
-        // Check nonces
-        if (!isset($_POST['tif_donation_details_nonce']) || 
-            !wp_verify_nonce($_POST['tif_donation_details_nonce'], $this->config['security']['nonce_actions']['donation_details'])) {
+        // Check nonces - YENİ NONCE NAME
+        if (!isset($_POST['tif_unified_details_nonce']) || 
+            !wp_verify_nonce($_POST['tif_unified_details_nonce'], $this->config['security']['nonce_actions']['donation_details'])) {
             return;
         }
         
@@ -432,35 +925,16 @@ class TIF_Admin {
         // Clear cache when saving
         wp_cache_delete('pending_donations_count', $this->cache_group);
         
-        // Save donation details - İanə Təsnifatı əlavə edildi
-        $donation_fields = array('name', 'phone', 'amount', 'company', 'company_name', 'voen', 'iane_tesnifati');
-        foreach ($donation_fields as $field) {
+        // Save all fields
+        $all_fields = array(
+            'name', 'phone', 'amount', 'company', 'company_name', 'voen', 
+            'iane_tesnifati', 'payment_status'
+        );
+        
+        foreach ($all_fields as $field) {
             if (isset($_POST[$field])) {
                 $value = $field === 'amount' ? floatval($_POST[$field]) : sanitize_text_field($_POST[$field]);
                 update_post_meta($post_id, $field, $value);
-            }
-        }
-        
-        // Save transaction details
-        $transaction_fields = array(
-            'bank_order_id', 'transactionId_local', 'payment_method', 
-            'payment_date', 'approval_code', 'card_number'
-        );
-        
-        foreach ($transaction_fields as $field) {
-            if (isset($_POST[$field])) {
-                update_post_meta($post_id, $field, sanitize_text_field($_POST[$field]));
-            }
-        }
-        
-        // Handle transaction ID as post title
-        if (isset($_POST['transactionId_local'])) {
-            $trans_id = sanitize_text_field($_POST['transactionId_local']);
-            if (!empty($trans_id)) {
-                wp_update_post(array(
-                    'ID' => $post_id,
-                    'post_title' => $trans_id
-                ));
             }
         }
         
@@ -471,10 +945,18 @@ class TIF_Admin {
             
             if ($new_status !== $old_status) {
                 update_post_meta($post_id, 'payment_status', $new_status);
-                $this->database->update_order_status($post_id, $new_status);
+                
+                // Update certificate eligibility based on new status
+                $is_eligible = in_array($new_status, array('completed', 'success', 'FullyPaid', 'Completed'));
+                if ($is_eligible && !get_post_meta($post_id, 'certificate_generated', true)) {
+                    // Auto-generate certificate if eligible
+                    update_post_meta($post_id, 'certificate_generated', true);
+                    update_post_meta($post_id, 'certificate_date', current_time('mysql'));
+                }
             }
         }
     }
+
     
     public function add_dashboard_widget() {
         if (!$this->config['admin']['dashboard_widget']) {
