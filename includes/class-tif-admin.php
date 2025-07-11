@@ -30,6 +30,7 @@ class TIF_Admin {
         add_action('admin_menu', array($this, 'add_admin_menus'));
         add_action('admin_notices', array($this, 'show_admin_notices'));
         add_action('admin_notices', array($this, 'show_bulk_action_notices'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_certificate_scripts'));
         
         // Customize admin columns
         add_filter('manage_' . $this->config['general']['post_type'] . '_posts_columns', array($this, 'add_custom_columns'));
@@ -859,4 +860,60 @@ class TIF_Admin {
                  '</p></div>';
         }
     }
-}
+    /**
+     * Enqueue admin certificate scripts - YENİ METOD (class daxilində)
+     */
+    public function enqueue_admin_certificate_scripts($hook) {
+        // Yalnız order edit səhifəsində
+        if ($hook !== 'post.php' && $hook !== 'post-new.php') {
+            return;
+        }
+        
+        global $post;
+        if (!$post || $post->post_type !== $this->config['general']['post_type']) {
+            return;
+        }
+        
+        // Debug log
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("TIF Admin: Enqueuing certificate scripts for order: " . $post->ID);
+        }
+        
+        // JavaScript üçün nonce data
+        wp_localize_script('jquery', 'tif_admin_certificate', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'order_id' => $post->ID,
+            'post_type' => $post->post_type,
+            'nonces' => array(
+                'preview' => wp_create_nonce('tif_preview_certificate'),
+                'generate' => wp_create_nonce('tif_generate_certificate')
+            ),
+            'debug' => defined('WP_DEBUG') && WP_DEBUG,
+            'messages' => array(
+                'generating' => __('Sertifikat yaradılır...', 'kapital-tif-donation'),
+                'converting' => __('PNG-yə çevrilir...', 'kapital-tif-donation'),
+                'success' => __('Uğurla tamamlandı!', 'kapital-tif-donation'),
+                'error' => __('Xəta baş verdi', 'kapital-tif-donation')
+            )
+        ));
+    }
+    
+    /**
+     * Debug üçün test AJAX handler (optional - test üçün)
+     */
+    public function test_certificate_ajax() {
+        if (!current_user_can('edit_posts')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+        }
+        
+        wp_send_json_success(array(
+            'message' => 'AJAX working correctly',
+            'server_time' => current_time('mysql'),
+            'request_data' => $_POST
+        ));
+    }
+
+} // CLASS KAPANIR BURADA - ÇOX MÜHİM!
+
+// Test AJAX hook (əgər debug lazımsa, uncomment et)
+// add_action('wp_ajax_tif_test_certificate_ajax', array($this, 'test_certificate_ajax'));
