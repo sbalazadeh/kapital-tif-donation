@@ -152,73 +152,6 @@ if (class_exists('TIF_Certificate')) {
 
 <!-- PNG Download + Clean Print JavaScript -->
 <script>
-// Ümumi SVG→PNG conversion funksiyası (DM Sans font ilə)
-function convertSVGToPNG(svgElement, scale = 2, callback) {
-    // DM Sans fontunu preload et
-    const dmSans = new FontFace('DM Sans', 'url(https://fonts.gstatic.com/s/dmsans/v13/rP2tp2ywxg089UriCZ2IHSeH.woff2)', {
-        weight: '600 800',
-        style: 'normal'
-    });
-    
-    dmSans.load().then(() => {
-        document.fonts.add(dmSans);
-        processSVGConversion(svgElement, scale, callback);
-    }).catch(() => {
-        processSVGConversion(svgElement, scale, callback);
-    });
-}
-
-function processSVGConversion(svgElement, scale, callback) {
-    // SVG-ə embedded font styles əlavə et
-    const svgData = new XMLSerializer().serializeToString(svgElement);
-    const fontEmbeddedSVG = `
-        <svg viewBox="0 0 842 600" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <style>
-                    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@600;800&display=swap');
-                    * {
-                        font-family: 'DM Sans', Arial, sans-serif !important;
-                    }
-                </style>
-            </defs>
-            ${svgData.replace('<svg', '<g').replace('</svg>', '</g>')}
-        </svg>
-    `;
-    
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    const svgWidth = svgElement.viewBox.baseVal.width || 842;
-    const svgHeight = svgElement.viewBox.baseVal.height || 600;
-    
-    canvas.width = svgWidth * scale;
-    canvas.height = svgHeight * scale;
-    canvas.style.width = svgWidth + 'px';
-    canvas.style.height = svgHeight + 'px';
-    
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    const img = new Image();
-    
-    img.onload = function() {
-        setTimeout(() => {
-            ctx.scale(scale, scale);
-            ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
-            callback(canvas);
-        }, 100);
-    };
-    
-    img.onerror = function() {
-        alert('PNG yaradılarkən xəta baş verdi.');
-    };
-    
-    const svgBlob = new Blob([fontEmbeddedSVG], {type: 'image/svg+xml;charset=utf-8'});
-    const url = URL.createObjectURL(svgBlob);
-    img.src = url;
-}
-
-// PNG Download funksiyası (sadələşdirilmiş)
 function downloadAsPNG() {
     const svgElement = document.querySelector('.tif-certificate-content svg');
     if (!svgElement) {
@@ -226,14 +159,42 @@ function downloadAsPNG() {
         return;
     }
     
-    convertSVGToPNG(svgElement, 2, function(canvas) {
+    // SVG-ni PNG-yə çevir
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // SVG ölçülərini götür
+    const svgWidth = svgElement.viewBox.baseVal.width || 842;
+    const svgHeight = svgElement.viewBox.baseVal.height || 600;
+    
+    // Canvas ölçüsünü set et (yüksək keyfiyyət üçün 2x)
+    const scale = 2;
+    canvas.width = svgWidth * scale;
+    canvas.height = svgHeight * scale;
+    canvas.style.width = svgWidth + 'px';
+    canvas.style.height = svgHeight + 'px';
+    
+    // Ağ background əlavə et
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // SVG-ni img elementinə load et
+    const img = new Image();
+    const certificateName = <?php echo json_encode(sanitize_file_name($name ?? "İanəçi")); ?>;
+    const certificateDate = <?php echo json_encode(date("Y-m-d")); ?>;
+    const orderId = <?php echo $order_id; ?>; // Order ID əlavə edildi
+    
+    img.onload = function() {
+        // Canvas-a çək (scaled)
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+        
+        // PNG olaraq download et
         canvas.toBlob(function(blob) {
-            const certificateName = <?php echo json_encode(sanitize_file_name($name ?? "İanəçi")); ?>;
-            const certificateDate = <?php echo json_encode(date("Y-m-d")); ?>;
-            const orderId = <?php echo $order_id; ?>;
             const filename = `TIF_Sertifikat_${certificateName}_${certificateDate}.png`;
             
-            // Download
+            // 1. Client-side download (mövcud)
             const url = URL.createObjectURL(blob);
             const downloadLink = document.createElement('a');
             downloadLink.href = url;
@@ -243,30 +204,23 @@ function downloadAsPNG() {
             document.body.removeChild(downloadLink);
             URL.revokeObjectURL(url);
             
-            // Server save
+            // 2. Server-də save et (YENİ ƏLAVƏ)
             savePNGToServer(blob, orderId, certificateName);
+            
         }, 'image/png', 1.0);
-    });
-}
-
-// Print funksiyası (sadələşdirilmiş)
-function openCertificateWindow() {
-    const svgElement = document.querySelector('.tif-certificate-content svg');
-    if (!svgElement) {
-        alert('Sertifikat tapılmadı.');
-        return;
-    }
+    };
     
-    convertSVGToPNG(svgElement, 3, function(canvas) {
-        const pngDataURL = canvas.toDataURL('image/png', 1.0);
-        const certificateName = <?php echo json_encode($name ?? "İanəçi"); ?>;
-        const certificateDate = <?php echo json_encode(date("d.m.Y")); ?>;
-        
-        openPrintWindow(pngDataURL, certificateName, certificateDate);
-    });
+    img.onerror = function() {
+        alert('PNG yaradılarkən xəta baş verdi. SVG-də xüsusi simvollar ola bilər.');
+    };
+    
+    // SVG data-sını base64-ə çevir və img-ə yüklə
+    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+    img.src = url;
 }
 
-// Server save funksiyası (dəyişməz)
+// YENİ ƏLAVƏ FUNKSIYA - Server save
 function savePNGToServer(blob, orderId, certificateName) {
     const formData = new FormData();
     formData.append('action', 'tif_save_certificate_png');
@@ -274,6 +228,7 @@ function savePNGToServer(blob, orderId, certificateName) {
     formData.append('certificate_png', blob, `certificate_${orderId}_${certificateName}.png`);
     formData.append('nonce', '<?php echo wp_create_nonce("tif_save_png"); ?>');
     
+    // Show saving status
     const certificateActions = document.querySelector('.tif-certificate-actions');
     const statusMsg = document.createElement('div');
     statusMsg.id = 'save-status';
@@ -289,18 +244,26 @@ function savePNGToServer(blob, orderId, certificateName) {
         const statusMsg = document.getElementById('save-status');
         
         if (data.success) {
+            console.log('✅ PNG server-də saxlanıldı:', data.data.file_path);
+            
             statusMsg.innerHTML = '<p style="color: #28a745; margin-top: 10px;">✅ Sertifikat uğurla server-də saxlanıldı!</p>';
+            
+            // Success message auto-hide
             setTimeout(() => {
                 if (statusMsg) statusMsg.remove();
             }, 4000);
+            
         } else {
+            console.error('PNG save error:', data.data?.message);
             statusMsg.innerHTML = '<p style="color: #dc3545; margin-top: 10px;">❌ Server save xətası</p>';
+            
             setTimeout(() => {
                 if (statusMsg) statusMsg.remove();
             }, 5000);
         }
     })
     .catch(error => {
+        console.error('PNG save request failed:', error);
         const statusMsg = document.getElementById('save-status');
         if (statusMsg) {
             statusMsg.innerHTML = '<p style="color: #dc3545; margin-top: 10px;">❌ Network xətası</p>';
@@ -309,7 +272,67 @@ function savePNGToServer(blob, orderId, certificateName) {
     });
 }
 
-// Print window funksiyası (dəyişməz)
+function openCertificateWindow() {
+    // Sertifikat content götür
+    const certificateElement = document.querySelector('.tif-certificate-content');
+    if (!certificateElement) {
+        alert('Sertifikat tapılmadı.');
+        return;
+    }
+    
+    // SVG content götür
+    const svgElement = certificateElement.querySelector('svg');
+    if (!svgElement) {
+        alert('SVG məzmun tapılmadı.');
+        return;
+    }
+    
+    // SVG-ni PNG-yə çevir və print et
+    convertSVGToPNGForPrint(svgElement);
+}
+
+function convertSVGToPNGForPrint(svgElement) {
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Print üçün yüksək keyfiyyət
+    const svgWidth = svgElement.viewBox.baseVal.width || 842;
+    const svgHeight = svgElement.viewBox.baseVal.height || 600;
+    const scale = 3; // Print üçün daha yüksək keyfiyyət
+    
+    canvas.width = svgWidth * scale;
+    canvas.height = svgHeight * scale;
+    
+    // Ağ background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    const img = new Image();
+    const certificateName = <?php echo json_encode($name ?? "İanəçi"); ?>;
+    const certificateDate = <?php echo json_encode(date("d.m.Y")); ?>;
+    
+    img.onload = function() {
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+        
+        // PNG data URL götür
+        const pngDataURL = canvas.toDataURL('image/png', 1.0);
+        
+        // Yeni pəncərədə göstər
+        openPrintWindow(pngDataURL, certificateName, certificateDate);
+    };
+    
+    img.onerror = function() {
+        // Fallback: SVG ilə göstər
+        openPrintWindowWithSVG(svgElement.outerHTML, certificateName, certificateDate);
+    };
+    
+    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+    img.src = url;
+}
+
 function openPrintWindow(imageDataURL, certificateName, certificateDate) {
     const newWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
     
@@ -399,7 +422,48 @@ function openPrintWindow(imageDataURL, certificateName, certificateDate) {
     newWindow.focus();
 }
 
-// Page load scroll
+function openPrintWindowWithSVG(svgContent, certificateName, certificateDate) {
+    // Fallback: SVG ilə print (əgər PNG conversion uğursuz olsa)
+    const newWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
+    
+    if (!newWindow) {
+        alert('Pop-up blocker aktivdir.');
+        return;
+    }
+    
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TIF İanə Sertifikatı - ${certificateName}</title>
+    <style>
+        body { margin: 0; padding: 20px; text-align: center; font-family: Arial, sans-serif; background: #f5f5f5; }
+        .certificate-container { background: white; padding: 20px; border-radius: 8px; display: inline-block; }
+        .certificate-content svg { max-width: 100%; height: auto; }
+        .actions { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 6px; }
+        .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-print { background: #007bff; color: white; }
+        .btn-close { background: #6c757d; color: white; }
+        @media print { .actions { display: none !important; } body { background: white; padding: 0; } .certificate-container { box-shadow: none; padding: 0; margin: 0; } }
+    </style>
+</head>
+<body>
+    <div class="certificate-container">
+        <div class="certificate-content">${svgContent}</div>
+    </div>
+    <div class="actions">
+        <button onclick="window.print()" class="btn btn-print">🖨️ Çap et</button>
+        <button onclick="window.close()" class="btn btn-close">❌ Bağla</button>
+    </div>
+</body>
+</html>`;
+    
+    newWindow.document.write(htmlContent);
+    newWindow.document.close();
+    newWindow.focus();
+}
+
+// Page load olduqda scroll certificate-a
 document.addEventListener('DOMContentLoaded', function() {
     const certificateSection = document.querySelector('.tif-certificate-section');
     if (certificateSection) {
