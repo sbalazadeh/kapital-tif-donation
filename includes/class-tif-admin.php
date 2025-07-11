@@ -284,6 +284,10 @@ class TIF_Admin {
         fclose($output);
     }
     
+    
+    /**
+     * Add meta boxes - Sertifikat meta box əlavə edildi
+     */
     public function add_meta_boxes() {
         add_meta_box(
             'tif_donation_details',
@@ -303,17 +307,24 @@ class TIF_Admin {
             'high'
         );
         
-        // API debug info meta box for test mode
-        if ($this->config['test_mode'] && $this->config['debug']['log_api_requests']) {
-            add_meta_box(
-                'tif_debug_info',
-                __('Debug Məlumatları', 'kapital-tif-donation'),
-                array($this, 'debug_info_callback'),
-                $this->config['general']['post_type'],
-                'side',
-                'low'
-            );
-        }
+        add_meta_box(
+            'tif_api_info',
+            __('API məlumatları', 'kapital-tif-donation'),
+            array($this, 'api_info_callback'),
+            $this->config['general']['post_type'],
+            'side',
+            'low'
+        );
+        
+        // YENİ: Sertifikat Meta Box
+        add_meta_box(
+            'tif_certificate_details',
+            __('İanə Sertifikatı', 'kapital-tif-donation'),
+            array($this, 'certificate_details_callback'),
+            $this->config['general']['post_type'],
+            'side',
+            'high'
+        );
     }
     
     /**
@@ -333,59 +344,68 @@ class TIF_Admin {
     }
     
     /**
-     * Donation details callback with İanə Təsnifatı
+     * Certificate details meta box callback - YENİ
      */
-    public function donation_details_callback($post) {
-        wp_nonce_field($this->config['security']['nonce_actions']['donation_details'], 'tif_donation_details_nonce');
+    public function certificate_details_callback($post) {
+        wp_nonce_field($this->config['security']['nonce_actions']['certificate_details'], 'tif_certificate_details_nonce');
         
-        $name = get_post_meta($post->ID, 'name', true);
-        $phone = get_post_meta($post->ID, 'phone', true);
-        $amount = get_post_meta($post->ID, 'amount', true);
+        // Get certificate data
+        $certificate_generated = get_post_meta($post->ID, 'certificate_generated', true);
+        $certificate_type = get_post_meta($post->ID, 'certificate_type', true);
+        $certificate_date = get_post_meta($post->ID, 'certificate_date', true);
+        $payment_status = get_post_meta($post->ID, 'payment_status', true);
+        $iane_tesnifati = get_post_meta($post->ID, 'iane_tesnifati', true);
         $company = get_post_meta($post->ID, 'company', true);
         $company_name = get_post_meta($post->ID, 'company_name', true);
-        $voen = get_post_meta($post->ID, 'voen', true);
-        $iane_tesnifati = get_post_meta($post->ID, 'iane_tesnifati', true); // YENİ FIELD
+        $name = get_post_meta($post->ID, 'name', true);
         
-        $this->load_template('admin/donation-details', array(
-            'name' => $name,
-            'phone' => $phone,
-            'amount' => $amount,
+        // Determine certificate availability
+        $is_eligible = in_array($payment_status, array('completed', 'success', 'FullyPaid', 'Completed'));
+        
+        // Certificate type mapping
+        $certificate_mapping = array(
+            'tifiane' => 'tif',
+            'qtdl' => 'youth', 
+            'qtp' => 'sustainable'
+        );
+        $suggested_type = $certificate_mapping[$iane_tesnifati] ?? 'tif';
+        
+        // Display name logic
+        $display_name = $name;
+        if ($company === 'Hüquqi şəxs' && !empty($company_name)) {
+            $display_name = $company_name;
+        }
+        
+        $this->load_template('admin/certificate-details', array(
+            'post_id' => $post->ID,
+            'certificate_generated' => $certificate_generated,
+            'certificate_type' => $certificate_type,
+            'certificate_date' => $certificate_date,
+            'payment_status' => $payment_status,
+            'iane_tesnifati' => $iane_tesnifati,
+            'suggested_type' => $suggested_type,
+            'is_eligible' => $is_eligible,
+            'display_name' => $display_name,
             'company' => $company,
             'company_name' => $company_name,
-            'voen' => $voen,
-            'iane_tesnifati' => $iane_tesnifati // YENİ VARIABLE
+            'name' => $name
         ));
     }
-    
-    public function transaction_details_callback($post) {
-        wp_nonce_field($this->config['security']['nonce_actions']['transaction_details'], 'tif_transaction_details_nonce');
+
+    /**
+     * API info callback
+     */
+    public function api_info_callback($post) {
+        $last_status_check = get_post_meta($post->ID, 'last_status_check', true);
+        $api_env = $this->api->get_environment_info();
         
-        $bank_order_id = get_post_meta($post->ID, 'bank_order_id', true);
-        $trans_id_local = get_post_meta($post->ID, 'transactionId_local', true);
-        $payment_method = get_post_meta($post->ID, 'payment_method', true);
-        $payment_date = get_post_meta($post->ID, 'payment_date', true);
-        $approval_code = get_post_meta($post->ID, 'approval_code', true);
-        $payment_status = get_post_meta($post->ID, 'payment_status', true);
-        $card_number = get_post_meta($post->ID, 'card_number', true);
-        $order_data = get_post_meta($post->ID, 'order_data', true);
-        
-        // Get current taxonomy status
-        $terms = wp_get_object_terms($post->ID, $this->config['general']['taxonomy']);
-        $current_term = !empty($terms) ? $terms[0]->name : 'Unknown';
-        
-        $this->load_template('admin/transaction-details', array(
-            'post_id' => $post->ID,
-            'bank_order_id' => $bank_order_id,
-            'trans_id_local' => $trans_id_local,
-            'payment_method' => $payment_method,
-            'payment_date' => $payment_date,
-            'approval_code' => $approval_code,
-            'payment_status' => $payment_status,
-            'card_number' => $card_number,
-            'order_data' => $order_data,
-            'current_term' => $current_term,
-            'nonce' => wp_create_nonce($this->config['security']['nonce_actions']['sync_status'])
-        ));
+        echo '<div style="font-size: 12px; color: #666;">';
+        echo '<p><strong>API Modu:</strong> ' . esc_html($api_env['mode']) . '</p>';
+        echo '<p><strong>API URL:</strong> ' . esc_html($api_env['api_url']) . '</p>';
+        echo '<p><strong>Son status yoxlaması:</strong> ' . ($last_status_check ? esc_html($last_status_check) : 'Yoxdur') . '</p>';
+        echo '<p><strong>Post ID:</strong> ' . esc_html($post->ID) . '</p>';
+        echo '<p><strong>Post Status:</strong> ' . esc_html($post->post_status) . '</p>';
+        echo '</div>';
     }
     
     /**
