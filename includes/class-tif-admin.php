@@ -31,6 +31,7 @@ class TIF_Admin {
         add_action('admin_notices', array($this, 'show_admin_notices'));
         add_action('admin_notices', array($this, 'show_bulk_action_notices'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_certificate_scripts'));
+        add_action('wp_ajax_tif_preview_certificate', array($this, 'ajax_preview_certificate'));
         
         // Customize admin columns
         add_filter('manage_' . $this->config['general']['post_type'] . '_posts_columns', array($this, 'add_custom_columns'));
@@ -1034,6 +1035,65 @@ class TIF_Admin {
                     update_post_meta($post_id, 'certificate_date', current_time('mysql'));
                 }
             }
+        }
+    }
+
+    /**
+     * Direct AJAX handler for certificate preview (admin only)
+     */
+    public function ajax_preview_certificate() {
+        // Security check
+        if (!current_user_can('edit_posts')) {
+            wp_send_json_error(array('message' => __('Icazəniz yoxdur.', 'kapital-tif-donation')));
+        }
+        
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'tif_preview_certificate')) {
+            wp_send_json_error(array('message' => __('Təhlükəsizlik xətası.', 'kapital-tif-donation')));
+        }
+        
+        $order_id = intval($_POST['order_id'] ?? 0);
+        $type = sanitize_text_field($_POST['type'] ?? 'tif');
+        
+        if ($order_id <= 0) {
+            wp_send_json_error(array('message' => __('Order ID tapılmadı.', 'kapital-tif-donation')));
+        }
+        
+        try {
+            // Config yüklə
+            $config_file = TIF_DONATION_CONFIG_DIR . 'config.php';
+            if (!file_exists($config_file)) {
+                throw new Exception('Config faylı tapılmadı');
+            }
+            
+            $config = require $config_file;
+            
+            // Certificate generator yarat
+            if (!class_exists('TIF_Certificate')) {
+                require_once TIF_DONATION_PLUGIN_DIR . 'includes/class-tif-certificate.php';
+            }
+            
+            $certificate_generator = new TIF_Certificate($config);
+            
+            // Certificate generate et
+            $svg_content = $certificate_generator->generate_certificate($order_id, $type);
+            
+            if ($svg_content) {
+                wp_send_json_success(array(
+                    'svg' => $svg_content,
+                    'message' => __('Sertifikat uğurla yaradıldı.', 'kapital-tif-donation'),
+                    'order_id' => $order_id,
+                    'type' => $type
+                ));
+            } else {
+                throw new Exception('Sertifikat generate edilə bilmədi');
+            }
+            
+        } catch (Exception $e) {
+            error_log("TIF Admin Certificate Preview Error: " . $e->getMessage());
+            wp_send_json_error(array(
+                'message' => __('Sertifikat yaradıla bilmədi: ', 'kapital-tif-donation') . $e->getMessage()
+            ));
         }
     }
 
