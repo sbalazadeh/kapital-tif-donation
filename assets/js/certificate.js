@@ -31,7 +31,6 @@ window.TIFCertificate = (function() {
         bindEvents();
 
         isInitialized = true;
-        console.log('TIF Certificate initialized');
     }
 
     /**
