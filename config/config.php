@@ -101,7 +101,7 @@ return array(
     
     // Debug settings - PRODUCTION DEBUG DISABLED
     'debug' => array(
-        'log_api_requests' => false, // Log-lar söndürülüb
+        'log_api_requests' => true, // Log-lar aktiv
         'log_certificate' => true, // Certificate log-ları
         'log_file' => WP_CONTENT_DIR . '/uploads/tif-donation-logs.txt',
         'max_log_size' => 5 * 1024 * 1024, // 5MB
