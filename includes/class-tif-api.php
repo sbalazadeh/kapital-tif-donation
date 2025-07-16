@@ -1,7 +1,6 @@
 <?php
 /**
  * Kapital Bank API Integration Class - CORRECTED VERSION
- * Replace the entire class-tif-api.php file with this content
  */
 
 // Prevent direct access
