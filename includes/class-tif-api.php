@@ -1,6 +1,7 @@
 <?php
 /**
- * Kapital Bank API Integration Class
+ * Kapital Bank API Integration Class - CORRECTED VERSION
+ * Replace the entire class-tif-api.php file with this content
  */
 
 // Prevent direct access
@@ -29,10 +30,16 @@ class TIF_API {
     }
     
     /**
-     * Make API request
+     * Enhanced make_request with detailed logging
      */
     public function make_request($endpoint, $body = null, $method = 'POST') {
         $url = $this->api_config['api_url'] . $endpoint;
+        
+        error_log("TIF API Debug - make_request started");
+        error_log("TIF API Debug - Method: {$method}");
+        error_log("TIF API Debug - URL: {$url}");
+        error_log("TIF API Debug - Username: " . $this->api_config['username']);
+        error_log("TIF API Debug - Password: " . (empty($this->api_config['password']) ? 'EMPTY' : 'SET'));
         
         $args = array(
             'method' => $method,
@@ -50,7 +57,11 @@ class TIF_API {
             } else {
                 $args['body'] = $body;
             }
+            error_log("TIF API Debug - Request Body: " . $args['body']);
         }
+        
+        error_log("TIF API Debug - SSL Verify: " . ($this->config['security']['ssl_verify'] ? 'true' : 'false'));
+        error_log("TIF API Debug - Timeout: " . $this->config['payment']['timeout']);
         
         // Log request
         $this->log_request($endpoint, $args);
@@ -59,6 +70,7 @@ class TIF_API {
         
         if (is_wp_error($response)) {
             $error_message = $response->get_error_message();
+            error_log("TIF API Debug - WP Error: {$error_message}");
             $this->log_error("API Request Failed: {$error_message}");
             
             return array(
@@ -68,20 +80,29 @@ class TIF_API {
         }
         
         $response_code = wp_remote_retrieve_response_code($response);
-        $body = wp_remote_retrieve_body($response);
+        $response_body = wp_remote_retrieve_body($response);
+        $response_headers = wp_remote_retrieve_headers($response);
+        
+        error_log("TIF API Debug - Response Code: {$response_code}");
+        error_log("TIF API Debug - Response Headers: " . print_r($response_headers, true));
+        error_log("TIF API Debug - Response Body: {$response_body}");
         
         // Log response
-        $this->log_response($endpoint, $response_code, $body);
+        $this->log_response($endpoint, $response_code, $response_body);
         
-        $json_response = json_decode($body, true);
+        $json_response = json_decode($response_body, true);
         
         if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("TIF API Debug - JSON Decode Error: " . json_last_error_msg());
             $this->log_error("JSON Decode Error: " . json_last_error_msg());
             return array(
                 'errorCode' => 'JSONError',
-                'errorDescription' => 'Invalid JSON response from API'
+                'errorDescription' => 'Invalid JSON response from API',
+                'raw_response' => $response_body
             );
         }
+        
+        error_log("TIF API Debug - Parsed JSON Response: " . print_r($json_response, true));
         
         return $json_response;
     }
@@ -131,11 +152,26 @@ class TIF_API {
     }
     
     /**
-     * Get detailed order status
+     * Enhanced get_detailed_order_status with detailed logging
      */
     public function get_detailed_order_status($bank_order_id) {
         $endpoint = '/order/' . $bank_order_id . '/?tranDetailLevel=2&tokenDetailLevel=2&orderDetailLevel=2';
-        return $this->make_request($endpoint, null, 'GET');
+        
+        error_log("TIF API Debug - get_detailed_order_status called");
+        error_log("TIF API Debug - Endpoint: {$endpoint}");
+        error_log("TIF API Debug - Full URL: " . $this->api_config['api_url'] . $endpoint);
+        
+        $response = $this->make_request($endpoint, null, 'GET');
+        
+        error_log("TIF API Debug - Raw API Response: " . print_r($response, true));
+        
+        // Check for error codes
+        if (isset($response['errorCode'])) {
+            error_log("TIF API Debug - API Error Code: " . $response['errorCode']);
+            error_log("TIF API Debug - API Error Description: " . ($response['errorDescription'] ?? 'No description'));
+        }
+        
+        return $response;
     }
     
     /**
@@ -204,38 +240,72 @@ class TIF_API {
     }
     
     /**
-     * Validate payment callback
+     * Enhanced validate callback with detailed logging
      */
     public function validate_callback($wp_order_id, $callback_status = null) {
         $bank_order_id = get_post_meta($wp_order_id, 'bank_order_id', true);
         
+        // Enhanced logging
+        error_log("TIF API Debug - validate_callback started");
+        error_log("TIF API Debug - WP Order ID: {$wp_order_id}");
+        error_log("TIF API Debug - Bank Order ID: {$bank_order_id}");
+        error_log("TIF API Debug - Callback Status: " . ($callback_status ?: 'null'));
+        
         if (empty($bank_order_id)) {
+            error_log("TIF API Debug - ERROR: Bank order ID is empty");
             return array(
                 'success' => false,
                 'error' => 'Bank order ID not found'
             );
         }
         
-        // Get order status from API
+        // Get order status from API with enhanced logging
+        error_log("TIF API Debug - Calling get_detailed_order_status with ID: {$bank_order_id}");
         $order_data = $this->get_detailed_order_status($bank_order_id);
         
-        if (empty($order_data) || !isset($order_data['order']['status'])) {
+        // Log the full API response
+        error_log("TIF API Debug - Full API Response: " . print_r($order_data, true));
+        
+        if (empty($order_data)) {
+            error_log("TIF API Debug - ERROR: Order data is completely empty");
             return array(
                 'success' => false,
-                'error' => 'Unable to get order status from API'
+                'error' => 'API returned empty response'
+            );
+        }
+        
+        if (!isset($order_data['order'])) {
+            error_log("TIF API Debug - ERROR: order key missing in response");
+            error_log("TIF API Debug - Available keys: " . implode(', ', array_keys($order_data)));
+            return array(
+                'success' => false,
+                'error' => 'API response missing order data'
+            );
+        }
+        
+        if (!isset($order_data['order']['status'])) {
+            error_log("TIF API Debug - ERROR: order.status missing");
+            error_log("TIF API Debug - Available order keys: " . implode(', ', array_keys($order_data['order'])));
+            return array(
+                'success' => false,
+                'error' => 'API response missing order status'
             );
         }
         
         $api_status = $order_data['order']['status'];
+        error_log("TIF API Debug - SUCCESS: API Status found: {$api_status}");
         
         // Use API status as it's more reliable
         $final_status = $api_status;
         
         // Save order data
         update_post_meta($wp_order_id, 'order_data', $order_data);
+        update_post_meta($wp_order_id, 'last_api_check', current_time('mysql'));
         
         // Extract transaction details
         $this->extract_transaction_details($wp_order_id, $order_data);
+        
+        error_log("TIF API Debug - validate_callback completed successfully with status: {$final_status}");
         
         return array(
             'success' => true,
