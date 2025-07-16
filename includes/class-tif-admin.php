@@ -1770,7 +1770,4 @@ class TIF_Admin {
     }
     
 
-} // CLASS KAPANIR BURADA - ÇOX MÜHİM!
-
-// Test AJAX hook (əgər debug lazımsa, uncomment et)
-// add_action('wp_ajax_tif_test_certificate_ajax', array($this, 'test_certificate_ajax'));
+} 
