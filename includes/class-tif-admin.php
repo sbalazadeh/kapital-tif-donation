@@ -1769,20 +1769,6 @@ class TIF_Admin {
         ));
     }
     
-    /**
-     * Debug üçün test AJAX handler (optional - test üçün)
-     */
-    public function test_certificate_ajax() {
-        if (!current_user_can('edit_posts')) {
-            wp_send_json_error(array('message' => 'Unauthorized'));
-        }
-        
-        wp_send_json_success(array(
-            'message' => 'AJAX working correctly',
-            'server_time' => current_time('mysql'),
-            'request_data' => $_POST
-        ));
-    }
 
 } // CLASS KAPANIR BURADA - ÇOX MÜHİM!
 
