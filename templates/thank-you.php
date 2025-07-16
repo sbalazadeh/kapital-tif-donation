@@ -38,10 +38,16 @@ if (empty($date)) {
     }
 }
 
-// Certificate generation - SIMPLIFIED
+// Certificate generation - IMPROVED VERSION
 $certificate_enabled = false;
 $certificate_svg = '';
 $certificate_error = '';
+
+// Get payment status from database for better check
+$payment_status = get_post_meta($order_id, 'payment_status', true);
+
+// Debug information
+error_log("TIF Thank You Debug: Order={$order_id}, URL_Status={$status}, DB_Status={$payment_status}");
 
 if (class_exists('TIF_Certificate')) {
     try {
@@ -51,7 +57,14 @@ if (class_exists('TIF_Certificate')) {
             $config = require $config_file;
             
             $certificate_generator = new TIF_Certificate($config);
-            $certificate_enabled = $certificate_generator->is_certificate_enabled($order_id);
+            
+            // IMPROVED: Check both URL status and database status
+            $is_url_success = in_array($status, array('success', 'completed'));
+            $is_db_success = in_array($payment_status, array('completed', 'success', 'FullyPaid', 'Completed'));
+            
+            $certificate_enabled = $is_url_success || $is_db_success;
+            
+            error_log("TIF Certificate Check: URL_Success={$is_url_success}, DB_Success={$is_db_success}, Enabled={$certificate_enabled}");
             
             if ($certificate_enabled) {
                 // Avtomatik sertifikat generation
@@ -63,6 +76,8 @@ if (class_exists('TIF_Certificate')) {
                     $certificate_error = 'Sertifikat yaradıla bilmədi.';
                     error_log("TIF Certificate: Generation failed for order: {$order_id}");
                 }
+            } else {
+                error_log("TIF Certificate: Not enabled - URL_Status={$status}, DB_Status={$payment_status}");
             }
         }
     } catch (Exception $e) {
@@ -74,7 +89,7 @@ if (class_exists('TIF_Certificate')) {
 
 <div class="tif-thank-you-container">
 
-    <?php if (($status === 'success' || $status === 'completed') && $certificate_enabled): ?>
+    <?php if ($certificate_enabled): ?>
     <!-- SIMPLIFIED Certificate Section -->
     <div class="tif-certificate-section">
         <div class="tif-certificate-header">
