@@ -154,7 +154,7 @@ class TIF_API {
      * Enhanced get_detailed_order_status with detailed logging
      */
     public function get_detailed_order_status($bank_order_id) {
-        $endpoint = '/order/' . $bank_order_id . '/?tranDetailLevel=2&tokenDetailLevel=2&orderDetailLevel=2';
+        $endpoint = '/order/' . $bank_order_id . '?tranDetailLevel=2&tokenDetailLevel=2&orderDetailLevel=2';
         
         error_log("TIF API Debug - get_detailed_order_status called");
         error_log("TIF API Debug - Endpoint: {$endpoint}");
