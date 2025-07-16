@@ -234,10 +234,22 @@ class TIF_Database {
     }
     
     /**
-     * Complete order
+     * Complete order - STATUS CONSISTENCY FIXED
      */
     public function complete_order($order_id) {
-        $result = $this->update_order_status($order_id, 'Completed');
+        // Use lowercase 'completed' for consistency with status mappings
+        $result = $this->update_order_status($order_id, 'completed');
+        
+        // Ensure payment_status meta is also set to 'completed'
+        update_post_meta($order_id, 'payment_status', 'completed');
+        
+        // Auto-enable certificate generation for completed orders
+        if (!get_post_meta($order_id, 'certificate_generated', true)) {
+            update_post_meta($order_id, 'certificate_generated', true);
+            update_post_meta($order_id, 'certificate_date', current_time('mysql'));
+            
+            error_log("TIF Complete Order: Certificate auto-enabled for order {$order_id}");
+        }
         
         // Clear statistics cache
         $this->clear_stats_cache();
