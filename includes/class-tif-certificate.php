@@ -28,7 +28,7 @@ class TIF_Certificate {
             'tif' => array(
                 'name' => 'Təhsilin İnkişafı Fondu',
                 'template_file' => 'certificate-tif-template.svg',
-                'enabled' => false,
+                'enabled' => true,
                 'placeholders' => array(
                     '{{CERTIFICATE_ID}}' => array(
                         'x' => '367.95',
