@@ -34,12 +34,6 @@ class TIF_API {
     public function make_request($endpoint, $body = null, $method = 'POST') {
         $url = $this->api_config['api_url'] . $endpoint;
         
-        error_log("TIF API Debug - make_request started");
-        error_log("TIF API Debug - Method: {$method}");
-        error_log("TIF API Debug - URL: {$url}");
-        error_log("TIF API Debug - Username: " . $this->api_config['username']);
-        error_log("TIF API Debug - Password: " . (empty($this->api_config['password']) ? 'EMPTY' : 'SET'));
-        
         $args = array(
             'method' => $method,
             'headers' => array(
@@ -56,11 +50,7 @@ class TIF_API {
             } else {
                 $args['body'] = $body;
             }
-            error_log("TIF API Debug - Request Body: " . $args['body']);
         }
-        
-        error_log("TIF API Debug - SSL Verify: " . ($this->config['security']['ssl_verify'] ? 'true' : 'false'));
-        error_log("TIF API Debug - Timeout: " . $this->config['payment']['timeout']);
         
         // Log request
         $this->log_request($endpoint, $args);
@@ -69,7 +59,6 @@ class TIF_API {
         
         if (is_wp_error($response)) {
             $error_message = $response->get_error_message();
-            error_log("TIF API Debug - WP Error: {$error_message}");
             $this->log_error("API Request Failed: {$error_message}");
             
             return array(
@@ -82,17 +71,12 @@ class TIF_API {
         $response_body = wp_remote_retrieve_body($response);
         $response_headers = wp_remote_retrieve_headers($response);
         
-        error_log("TIF API Debug - Response Code: {$response_code}");
-        error_log("TIF API Debug - Response Headers: " . print_r($response_headers, true));
-        error_log("TIF API Debug - Response Body: {$response_body}");
-        
         // Log response
         $this->log_response($endpoint, $response_code, $response_body);
         
         $json_response = json_decode($response_body, true);
         
         if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("TIF API Debug - JSON Decode Error: " . json_last_error_msg());
             $this->log_error("JSON Decode Error: " . json_last_error_msg());
             return array(
                 'errorCode' => 'JSONError',
@@ -100,8 +84,6 @@ class TIF_API {
                 'raw_response' => $response_body
             );
         }
-        
-        error_log("TIF API Debug - Parsed JSON Response: " . print_r($json_response, true));
         
         return $json_response;
     }
