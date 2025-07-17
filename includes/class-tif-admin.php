@@ -210,11 +210,12 @@ class TIF_Admin {
         }
         
         // Show test mode notice
-        if ($this->config['test_mode']) {
-            echo '<div class="notice notice-warning is-dismissible">';
-            echo '<p><strong>' . __('TEST MODU AKTİVDİR:', 'kapital-tif-donation') . '</strong> ';
-            echo __('Production-a keçmək üçün config.php faylında test_mode parametrini false edin.', 'kapital-tif-donation');
-            echo '</p></div>';
+        if ($this->config['test_mode'] && current_user_can('manage_options')) {
+            // Show only on plugin pages
+            $screen = get_current_screen();
+            if ($screen && strpos($screen->id, $this->config['general']['post_type']) !== false) {
+                // Show notice
+            }
         }
         
         // Show API status
@@ -274,7 +275,7 @@ class TIF_Admin {
                 );
             }
             
-            wp_cache_set($cache_key, $status, $this->cache_group, 600); // 10 minutes
+            wp_cache_set($cache_key, $status, $this->cache_group, 1800); // 30 dəqiqə
         }
         
         return $status;
