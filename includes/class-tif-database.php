@@ -598,34 +598,4 @@ class TIF_Database {
         
         return $updated_count;
     }
-    
-    /**
-     * Delete old log entries (cleanup function)
-     */
-    public function cleanup_old_data($days_to_keep = 365) {
-        global $wpdb;
-        
-        $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$days_to_keep} days"));
-        
-        // Get old posts
-        $old_posts = $wpdb->get_col($wpdb->prepare("
-            SELECT ID FROM {$wpdb->posts} 
-            WHERE post_type = %s 
-            AND post_date < %s
-        ", $this->config['general']['post_type'], $cutoff_date));
-        
-        $deleted_count = 0;
-        
-        foreach ($old_posts as $post_id) {
-            if (wp_delete_post($post_id, true)) {
-                $deleted_count++;
-            }
-        }
-        
-        if ($deleted_count > 0) {
-            $this->clear_stats_cache();
-        }
-        
-        return $deleted_count;
-    }
 }
