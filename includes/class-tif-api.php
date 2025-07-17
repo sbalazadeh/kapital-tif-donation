@@ -138,19 +138,7 @@ class TIF_API {
     public function get_detailed_order_status($bank_order_id) {
         $endpoint = '/order/' . $bank_order_id . '?tranDetailLevel=2&tokenDetailLevel=2&orderDetailLevel=2';
         
-        error_log("TIF API Debug - get_detailed_order_status called");
-        error_log("TIF API Debug - Endpoint: {$endpoint}");
-        error_log("TIF API Debug - Full URL: " . $this->api_config['api_url'] . $endpoint);
-        
         $response = $this->make_request($endpoint, null, 'GET');
-        
-        error_log("TIF API Debug - Raw API Response: " . print_r($response, true));
-        
-        // Check for error codes
-        if (isset($response['errorCode'])) {
-            error_log("TIF API Debug - API Error Code: " . $response['errorCode']);
-            error_log("TIF API Debug - API Error Description: " . ($response['errorDescription'] ?? 'No description'));
-        }
         
         return $response;
     }
