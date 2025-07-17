@@ -24,8 +24,8 @@ return array(
     'production' => array(
         'api_url' => 'https://e-commerce.kapitalbank.az/api',
         'hpp_url' => 'https://e-commerce.kapitalbank.az/flex',
-        'username' => 'YOUR_PRODUCTION_USERNAME',
-        'password' => 'YOUR_PRODUCTION_PASSWORD',
+        'username' => 'TerminalSys/E1020337',
+        'password' => 'U9q0:83S*&QyKl1eo7y)',
     ),
     
     // General plugin settings - EDITOR PERMISSIONS UPDATED
