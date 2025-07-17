@@ -9,16 +9,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Debug üçün
-error_log('Thank You Page Debug:');
-error_log('Order ID: ' . $order_id);
-error_log('Status: ' . $status);
-
 // Test mode üçün nonce yoxlamasını keç
 $is_test_mode = isset($_GET['test_mode']) || (strpos(get_post_meta($order_id, 'transactionId_local', true), 'TEST-') === 0);
 
 if ($is_test_mode) {
-    error_log('Test mode aktiv');
 }
 
 // Get order details
@@ -47,7 +41,6 @@ $certificate_error = '';
 $payment_status = get_post_meta($order_id, 'payment_status', true);
 
 // Debug information
-error_log("TIF Thank You Debug: Order={$order_id}, URL_Status={$status}, DB_Status={$payment_status}");
 
 if (class_exists('TIF_Certificate')) {
     try {
@@ -64,25 +57,19 @@ if (class_exists('TIF_Certificate')) {
             
             $certificate_enabled = $is_url_success || $is_db_success;
             
-            error_log("TIF Certificate Check: URL_Success={$is_url_success}, DB_Success={$is_db_success}, Enabled={$certificate_enabled}");
-            
             if ($certificate_enabled) {
                 // Avtomatik sertifikat generation
                 $certificate_svg = $certificate_generator->generate_certificate_for_thank_you($order_id);
                 
                 if ($certificate_svg) {
-                    error_log("TIF Certificate: Auto-generated for thank you page - Order: {$order_id}");
                 } else {
                     $certificate_error = 'Sertifikat yaradıla bilmədi.';
-                    error_log("TIF Certificate: Generation failed for order: {$order_id}");
                 }
             } else {
-                error_log("TIF Certificate: Not enabled - URL_Status={$status}, DB_Status={$payment_status}");
             }
         }
     } catch (Exception $e) {
         $certificate_error = 'Sertifikat xətası: ' . $e->getMessage();
-        error_log("TIF Certificate Error: " . $e->getMessage());
     }
 }
 ?>
