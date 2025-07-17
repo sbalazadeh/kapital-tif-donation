@@ -144,43 +144,6 @@ class TIF_API {
     }
     
     /**
-     * Process refund
-     */
-    public function process_refund($bank_order_id, $amount) {
-        $endpoint = '/order/' . $bank_order_id . '/exec-tran';
-        
-        $refund_data = array(
-            'tran' => array(
-                'phase' => 'Single',
-                'amount' => number_format((float)$amount, 2, '.', ''),
-                'type' => 'Refund'
-            )
-        );
-        
-        return $this->make_request($endpoint, $refund_data);
-    }
-    
-    /**
-     * Process reversal
-     */
-    public function process_reversal($bank_order_id, $void_kind = 'Full', $amount = null) {
-        $endpoint = '/order/' . $bank_order_id . '/exec-tran';
-        
-        $reversal_data = array(
-            'tran' => array(
-                'phase' => 'Single',
-                'voidKind' => $void_kind
-            )
-        );
-        
-        if ($amount !== null && $void_kind === 'Partial') {
-            $reversal_data['tran']['amount'] = number_format((float)$amount, 2, '.', '');
-        }
-        
-        return $this->make_request($endpoint, $reversal_data);
-    }
-    
-    /**
      * Generate payment redirect HTML
      */
     public function generate_payment_redirect($bank_order_id, $bank_order_password) {
@@ -214,14 +177,7 @@ class TIF_API {
     public function validate_callback($wp_order_id, $callback_status = null) {
         $bank_order_id = get_post_meta($wp_order_id, 'bank_order_id', true);
         
-        // Enhanced logging
-        error_log("TIF API Debug - validate_callback started");
-        error_log("TIF API Debug - WP Order ID: {$wp_order_id}");
-        error_log("TIF API Debug - Bank Order ID: {$bank_order_id}");
-        error_log("TIF API Debug - Callback Status: " . ($callback_status ?: 'null'));
-        
         if (empty($bank_order_id)) {
-            error_log("TIF API Debug - ERROR: Bank order ID is empty");
             return array(
                 'success' => false,
                 'error' => 'Bank order ID not found'
@@ -229,14 +185,10 @@ class TIF_API {
         }
         
         // Get order status from API with enhanced logging
-        error_log("TIF API Debug - Calling get_detailed_order_status with ID: {$bank_order_id}");
         $order_data = $this->get_detailed_order_status($bank_order_id);
         
-        // Log the full API response
-        error_log("TIF API Debug - Full API Response: " . print_r($order_data, true));
-        
+        // Log the full API response       
         if (empty($order_data)) {
-            error_log("TIF API Debug - ERROR: Order data is completely empty");
             return array(
                 'success' => false,
                 'error' => 'API returned empty response'
@@ -244,8 +196,6 @@ class TIF_API {
         }
         
         if (!isset($order_data['order'])) {
-            error_log("TIF API Debug - ERROR: order key missing in response");
-            error_log("TIF API Debug - Available keys: " . implode(', ', array_keys($order_data)));
             return array(
                 'success' => false,
                 'error' => 'API response missing order data'
@@ -253,8 +203,6 @@ class TIF_API {
         }
         
         if (!isset($order_data['order']['status'])) {
-            error_log("TIF API Debug - ERROR: order.status missing");
-            error_log("TIF API Debug - Available order keys: " . implode(', ', array_keys($order_data['order'])));
             return array(
                 'success' => false,
                 'error' => 'API response missing order status'
@@ -262,7 +210,6 @@ class TIF_API {
         }
         
         $api_status = $order_data['order']['status'];
-        error_log("TIF API Debug - SUCCESS: API Status found: {$api_status}");
         
         // Use API status as it's more reliable
         $final_status = $api_status;
@@ -273,8 +220,6 @@ class TIF_API {
         
         // Extract transaction details
         $this->extract_transaction_details($wp_order_id, $order_data);
-        
-        error_log("TIF API Debug - validate_callback completed successfully with status: {$final_status}");
         
         return array(
             'success' => true,
