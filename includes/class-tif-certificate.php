@@ -117,7 +117,6 @@ class TIF_Certificate {
      * @return string|false Generated SVG content or false on error
      */
     public function generate_certificate($order_id, $certificate_type = 'tif') {
-        error_log("TIF Certificate Debug - Order ID: $order_id, Type: $certificate_type");
         
         try {
             // Validate and handle certificate type
@@ -126,14 +125,12 @@ class TIF_Certificate {
             // Get order data
             $order_data = $this->get_order_data($order_id);
             if (!$order_data) {
-                error_log("TIF Certificate: Order data not found for ID: {$order_id}");
                 return false;
             }
             
             // Load SVG template
             $svg_content = $this->load_svg_template($certificate_type);
             if (!$svg_content) {
-                error_log("TIF Certificate: Template not found for type: {$certificate_type}");
                 return false;
             }
             
@@ -146,7 +143,6 @@ class TIF_Certificate {
             return $final_svg;
             
         } catch (Exception $e) {
-            error_log("TIF Certificate Generation Error: " . $e->getMessage());
             return false;
         }
     }
@@ -160,7 +156,6 @@ class TIF_Certificate {
     private function validate_and_fix_certificate_type($certificate_type) {
         // Əgər type mövcud deyilsə və ya deaktivdirsə
         if (!isset($this->certificate_templates[$certificate_type])) {
-            error_log("TIF Certificate: Invalid certificate type: {$certificate_type}, using fallback");
             return 'tif'; // Default fallback
         }
         
@@ -464,8 +459,6 @@ class TIF_Certificate {
         // Get iane_tesnifati to determine certificate type
         $iane_tesnifati = get_post_meta($order_id, 'iane_tesnifati', true);
         $certificate_type = $this->get_certificate_type_by_iane($iane_tesnifati);
-        
-        error_log("TIF Certificate: Thank you page generation - Order: {$order_id}, Iane: {$iane_tesnifati}, Type: {$certificate_type}");
         
         return $this->generate_certificate($order_id, $certificate_type);
     }
