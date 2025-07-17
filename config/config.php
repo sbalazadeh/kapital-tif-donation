@@ -1,6 +1,6 @@
 <?php
 /**
- * Configuration file for Kapital TIF Donation Plugin - PRODUCTION READY
+ * TIF Donation Plugin Configuration - EDITOR PERMISSIONS UPDATED
  */
 
 // Prevent direct access
@@ -8,21 +8,11 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Plugin settings
 return array(
-    
-    // General settings
-    'general' => array(
-        'text_domain' => 'kapital-tif-donation',
-        'post_type' => 'odenis',
-        'taxonomy' => 'odenis_statusu',
-        'capability' => 'manage_options',
-    ),
-    
-    // PRODUCTION MODE ACTIVE
+    // Test mode (production-da false olmalıdır)
     'test_mode' => false,
     
-    // API Configuration - Test Environment (saxlanılır test üçün)
+    // Test environment configuration
     'test' => array(
         'api_url' => 'https://txpgtst.kapitalbank.az/api',
         'hpp_url' => 'https://txpgtst.kapitalbank.az/flex',
@@ -30,12 +20,20 @@ return array(
         'password' => 'kapital123',
     ),
     
-    // API Configuration - Production Environment - REAL CREDENTIALS
+    // Production environment configuration
     'production' => array(
         'api_url' => 'https://e-commerce.kapitalbank.az/api',
         'hpp_url' => 'https://e-commerce.kapitalbank.az/flex',
-        'username' => 'TerminalSys/E1020337',
-        'password' => 'U9q0:83S*&QyKl1eo7y)',
+        'username' => 'YOUR_PRODUCTION_USERNAME',
+        'password' => 'YOUR_PRODUCTION_PASSWORD',
+    ),
+    
+    // General plugin settings - EDITOR PERMISSIONS UPDATED
+    'general' => array(
+        'post_type' => 'odenis',
+        'taxonomy' => 'odenis_statusu',
+        'capability' => 'edit_posts', // ← CHANGED: manage_options → edit_posts
+        'menu_position' => 25,
     ),
     
     // Payment settings
@@ -52,27 +50,21 @@ return array(
         'enabled' => true,
         'auto_generate' => true,
         'default_type' => 'tif',
-        'templates_dir' => 'templates/certificate/',
-        'download_enabled' => true,
-        'print_enabled' => true,
-        'share_enabled' => false, // Future feature
-        'types' => array(
-            'tif' => 'Təhsilin İnkişafı Fondu',
-            'youth' => 'Gənc qızların təhsilinə dəstək',
-            'sustainable' => 'Qarabağ Təqaüd Proqramı'
-        )
+        'path' => WP_CONTENT_DIR . '/uploads/tif-certificates/',
+        'url' => WP_CONTENT_URL . '/uploads/tif-certificates/',
     ),
     
-    // Order statuses mapping
+    // Status mapping
     'status_mapping' => array(
         'FullyPaid' => 'completed',
         'Completed' => 'completed',
-        'PreAuthorized' => 'processing',
-        'Prepared' => 'processing',
-        'Preparing' => 'processing',
-        'Processing' => 'processing',
+        'Success' => 'completed',
         'Declined' => 'failed',
         'Failed' => 'failed',
+        'Processing' => 'processing',
+        'Preparing' => 'processing',
+        'Prepared' => 'processing',
+        'Pre-authorized' => 'processing',
         'Cancelled' => 'cancelled',
         'Pending' => 'pending',
     ),
@@ -107,11 +99,11 @@ return array(
         'max_log_size' => 5 * 1024 * 1024, // 5MB
     ),
     
-    // Admin settings
+    // Admin settings - EDITOR PERMISSIONS UPDATED
     'admin' => array(
         'posts_per_page' => 20,
         'dashboard_widget' => true,
-        'export_capability' => 'manage_options',
+        'export_capability' => 'edit_posts', // ← CHANGED: manage_options → edit_posts
     ),
     
     // Frontend settings
